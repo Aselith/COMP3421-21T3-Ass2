@@ -4,6 +4,7 @@
 - Version 0.1 (Released on 19/10/2021): copy pasting Assignment 1 as a blueprint
 - Version 1.0 (Released on 19/10/2021): first draft of Assignment 2
 - Version 1.1 (Released on 19/10/2021): revisions based on tutor feedback, ready for public release
+- Version 1.2 (Released on 20/10/2021): fixed due date to Friday Week 09
 
 ## Introduction
 The purpose of this assignment is to learn about the fundamentals of 3D Graphics and Lighting. It's titled Historical 3D Graphics as these techniques were cutting edge in the late 1990s. The main focus is on two things:
@@ -110,7 +111,7 @@ If you wish to use any external libraries with the assignment, you do so at your
 
 Also note that you do not have any control over what system will be used to test your assignment. We have been very careful with the projects we've given you to make sure they work on Windows, Linux and Mac and all our tutors' testing environments. We obviously cannot give that guarantee for any external libraries, so bear in mind that there's a chance that including external libraries will cause a project to fail even the simplest tests and potentially cost a great deal of marks.
 
-## Due Date: Friday 5th November 8pm
+## Due Date: Friday 12th November 8pm
 Late penalty is 20% off maximum mark for every 24 hours after 8pm. This means if you hand something in that's between 1 and 2 days late, your maximum mark will be lowered to 60%. Your mark itself will not be changed if it's lower than the new maximum.
 
 We're not trying to be harsh with these deadlines, so if you have a reason why you weren't able to hand something in in time, you can contact your tutor for an extension and we'll be quite friendly with short extensions.

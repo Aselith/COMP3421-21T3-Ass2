@@ -75,7 +75,13 @@ Write your answer here...
 
 Write your answer here...
 
-## Section 5: Use of External Libraries
+## Section 5 (optional): Code Style Feedback
+
+### There are no marks assigned to code style in this assignment. However, if you would like to receive some feedback on your coding style, please point out a section of your code (up to 100 lines) and your tutor will give you some written feedback on the structure and readability of that code.
+
+Write your answer here (lines numbers or function names that you'd like reviewed)
+
+## Section 6 (optional): Use of External Libraries
 
 ### What does the library do?
 
