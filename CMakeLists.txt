@@ -31,9 +31,24 @@ target_include_directories(${ACTIVITY} PUBLIC include)
 target_sources(${ACTIVITY}
         ${target}
         PRIVATE
-        include/ass2/memes.hpp
 
+        include/ass2/utility.hpp
+        include/ass2/memes.hpp
+        include/ass2/static_mesh.hpp
+        include/ass2/scene.hpp
+        include/ass2/player.hpp
+        include/ass2/texture_2d.hpp
+        include/ass2/static_mesh.hpp
+        include/ass2/shapes.hpp
+
+        src/utility.cpp
         src/memes.cpp
+        src/static_mesh.cpp
+        src/scene.cpp
+        src/player.cpp
+        src/texture_2d.cpp
+        src/static_mesh.cpp
+        src/shapes.cpp
 
         src/main.cpp
         )

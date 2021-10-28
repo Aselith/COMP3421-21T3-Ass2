@@ -2,7 +2,7 @@
 
 #include <ass2/memes.hpp>
 
-const char *MARCCOIN_TEXTURE_PATH = "res/textures/marccoin.png";
+const char *MinecraftIcon = "res/textures/jack_o_lantern.png";
 
 /**
  * Please don't kill me marc
@@ -10,13 +10,12 @@ const char *MARCCOIN_TEXTURE_PATH = "res/textures/marccoin.png";
  * @return a better window
  */
 GLFWwindow *marcify(GLFWwindow *win) {
-    chicken3421::image_t marccoin = chicken3421::load_image(MARCCOIN_TEXTURE_PATH, false);
+    chicken3421::image_t mineCoin = chicken3421::load_image(MinecraftIcon, false);
 
-    GLFWimage favicon = {marccoin.width, marccoin.height, (unsigned char *) marccoin.data};
+    GLFWimage favicon = {mineCoin.width, mineCoin.height, (unsigned char *) mineCoin.data};
     glfwSetWindowIcon(win, 1, &favicon);
 
-
-    chicken3421::delete_image(marccoin);
+    chicken3421::delete_image(mineCoin);
 
     return win;
 }
