@@ -14,25 +14,20 @@
 #include <ass2/texture_2d.hpp>
 #include <ass2/static_mesh.hpp>
 #include <ass2/scene.hpp>
+#include <ass2/utility.hpp>
 
 #include <iostream>
 
 const char *VERT_PATH = "res/shaders/default.vert";
 const char *FRAG_PATH = "res/shaders/default.frag";
 
-/**
- * Returns the difference in time between when this function was previously called and this call.
- * @return A float representing the difference between function calls in seconds.
- */
-float time_delta();
 
-/**
- * Returns the current time in seconds.
- * @return Returns the current time in seconds.
- */
-float time_now();
+
+
 
 int main() {
+
+    chicken3421::enable_debug_output();
     GLFWwindow *window = marcify(chicken3421::make_opengl_window(1280, 720, "Assignment 2"));
 
     scene::world gameWorld;
@@ -57,19 +52,6 @@ int main() {
     glm::mat4 proj = glm::perspective(glm::radians(60.0), (double) 1280 / (double) 720, 0.1, 50.0);
     gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
 
-    texture_2d::params_t parameters;
-    parameters.filter_min = GL_NEAREST;
-    parameters.filter_max = GL_NEAREST;
-
-    GLuint bedrockTexID = texture_2d::init("./res/textures/bedrock.png", parameters);
-    GLuint grassblockTexID = texture_2d::init("./res/textures/grass_block.png", parameters);
-
-    for (int x = 0; x < gameWorld.terrain.size(); x++) {
-        for (int z = 0; z < gameWorld.terrain[0][0].size(); z++) {
-            gameWorld.placeBlock(scene::createBlock(x, 0, z, bedrockTexID));
-        }
-    }
-
     // gameWorld.updateAllBlocksCulling();
 
     glEnable(GL_BLEND);
@@ -86,22 +68,31 @@ int main() {
     glfwSetWindowUserPointer(window, &gameWorld);
     glfwSetMouseButtonCallback(window, [](GLFWwindow *win, int button, int action, int mods) {
         scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
-        texture_2d::params_t parameters;
-        parameters.filter_min = GL_NEAREST;
-        parameters.filter_max = GL_NEAREST;
-        auto tntTexID = texture_2d::init("res/textures/tnt.png", parameters);
+
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
             gameWorld->leftClickDestroy();
         } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-            gameWorld->rightClickPlace(tntTexID);
+            gameWorld->rightClickPlace();
             
+        }
+    });
+
+    glfwSetScrollCallback(window, [](GLFWwindow *win, double xoffset, double yoffset) {
+        scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
+
+        if (yoffset > 0) {
+            std::cout << "Going up\n";
+            gameWorld->scrollHotbar(1);
+        } else {
+            std::cout << "Going down\n";
+            gameWorld->scrollHotbar(-1);
         }
     });
 
 
     glUseProgram(render_program);
     while (!glfwWindowShouldClose(window)) {
-        float dt = time_delta();
+        float dt = utility::time_delta();
         if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
             std::cout << "X: " << gameWorld.playerCamera.pos.x << " ";
             std::cout << "Y: " << gameWorld.playerCamera.pos.y << " ";
@@ -128,17 +119,4 @@ int main() {
     chicken3421::delete_opengl_window(window);
 
     return EXIT_SUCCESS;
-}
-
-
-float time_delta() {
-    static float then = time_now();
-    float now = time_now();
-    float dt = now - then;
-    then = now;
-    return dt;
-}
-
-float time_now() {
-    return (float)glfwGetTime();
 }

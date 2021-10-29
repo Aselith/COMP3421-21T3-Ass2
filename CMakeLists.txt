@@ -40,6 +40,7 @@ target_sources(${ACTIVITY}
         include/ass2/texture_2d.hpp
         include/ass2/static_mesh.hpp
         include/ass2/shapes.hpp
+        include/ass2/renderer.hpp
 
         src/utility.cpp
         src/memes.cpp
@@ -49,6 +50,7 @@ target_sources(${ACTIVITY}
         src/texture_2d.cpp
         src/static_mesh.cpp
         src/shapes.cpp
+        src/renderer.cpp
 
         src/main.cpp
         )
