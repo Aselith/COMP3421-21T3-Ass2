@@ -12,14 +12,11 @@ namespace static_mesh {
         glGenBuffers(1, &mesh.vbo);
         glGenBuffers(1, &mesh.ebo);
 
-        // Copies the list of indices over to the mesh
-        mesh.indices = mesh_template.indices;
-
         glBindVertexArray(mesh.vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, // target
-                     (GLsizeiptr) (mesh.indices.size() * sizeof(GLuint)), // num bytes in the data
-                     &mesh.indices[0], // pointer to the actual data
+                     (GLsizeiptr) (mesh_template.indices.size() * sizeof(GLuint)), // num bytes in the data
+                     &mesh_template.indices[0], // pointer to the actual data
                      GL_STATIC_DRAW);
         
 
@@ -40,6 +37,12 @@ namespace static_mesh {
         for (auto i = size_t{0}; i < mesh_template.tex_coords.size(); ++i) {
             data.push_back(mesh_template.tex_coords[i].x);
             data.push_back(mesh_template.tex_coords[i].y);
+        }
+
+        for (auto i = size_t{0}; i < mesh_template.normals.size(); ++i) {
+            data.push_back(mesh_template.normals[i].x);
+            data.push_back(mesh_template.normals[i].y);
+            data.push_back(mesh_template.normals[i].z);
         }
 
         // set the GL_ARRAY_BUFFER state to be our mesh.vbo handle
@@ -75,9 +78,17 @@ namespace static_mesh {
         if (!mesh_template.tex_coords.empty()) {
             glEnableVertexAttribArray(attrib_index);
             glVertexAttribPointer(attrib_index, 2, GL_FLOAT, GL_FALSE, 0, (void *) offset);
-//            ++attrib_index;
-//            offset += mesh_template.tex_coords.size() * sizeof(glm::vec2);
+            ++attrib_index;
+            offset += mesh_template.tex_coords.size() * sizeof(glm::vec2);
         }
+
+        if (!mesh_template.normals.empty()) {
+			glEnableVertexAttribArray(attrib_index);
+			glVertexAttribPointer(attrib_index, 3, GL_FLOAT, GL_FALSE, 0, (void*) offset);
+            ++attrib_index;
+			offset += mesh_template.normals.size() * sizeof(glm::vec3);
+		}
+
 
         // unbind the vertex array object so not to accidentally add more info to the vao state
         glBindVertexArray(0);

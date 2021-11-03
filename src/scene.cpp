@@ -3,18 +3,20 @@
 
 namespace scene {
     
-    void drawBlock(const node_t *node, const glm::mat4 &parent_mvp, GLint mvp_loc, std::vector<bool> faces) {
-        glm::mat4 mvp = parent_mvp;
-        mvp *= glm::translate(glm::mat4(1.0), node->translation);
-        mvp *= glm::scale(glm::mat4(1.0), node->scale);
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.y), glm::vec3(0, 1, 0));
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.x), glm::vec3(1, 0, 0));
+    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces) {
+        model *= glm::translate(glm::mat4(1.0), node->translation);
+        model *= glm::scale(glm::mat4(1.0), node->scale);
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.y), glm::vec3(0, 1, 0));
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.x), glm::vec3(1, 0, 0));
 
-        texture_2d::bind(node->texture);
-        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp));
+        glUniformMatrix4fv(renderInfo.model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
         if (node->mesh.vbo) {
+            texture_2d::bind(node->texture);
+            glUniform1f(renderInfo.mat_tex_factor_loc, node->texture ? 1.0f : 0.0f);
+			glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
+			glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
             glBindVertexArray(node->mesh.vao);
             // Ensures to only render the sides that has an air block with that side
             for (std::vector<int>::size_type index = 0; index < faces.size(); index++) {
@@ -26,24 +28,30 @@ namespace scene {
         }
     }
 
-    void drawElement(const node_t *node, const glm::mat4 &parent_mvp, GLint mvp_loc) {
+    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo) {
 
-        glm::mat4 mvp = parent_mvp;
-        mvp *= glm::translate(glm::mat4(1.0), node->translation);
-        mvp *= glm::scale(glm::mat4(1.0), node->scale);
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.y), glm::vec3(0, 1, 0));
-        mvp *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.x), glm::vec3(1, 0, 0));
+        
+        model *= glm::translate(glm::mat4(1.0), node->translation);
+        model *= glm::scale(glm::mat4(1.0), node->scale);
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.y), glm::vec3(0, 1, 0));
+        model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.x), glm::vec3(1, 0, 0));
 
-        texture_2d::bind(node->texture);
-        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp));
+        glUniformMatrix4fv(renderInfo.model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
-        if (node->mesh.vbo) {
+        if (node->mesh.vbo && !node->air) {
+            texture_2d::bind(node->texture);
+            glUniform1f(renderInfo.mat_tex_factor_loc, node->texture ? 1.0f : 0.0f);
+            glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
+            glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
+
             static_mesh::draw(node->mesh, GL_TRIANGLES);
+            glBindVertexArray(0);
         }
+        
         // Recursively draw the celestial bodies that are dependent on this celestial body
         for (auto child : node->children) {
-            scene::drawElement(&child, mvp, mvp_loc);
+            scene::drawElement(&child, model, renderInfo);
         }
         
         return;
@@ -61,12 +69,11 @@ namespace scene {
     /*
     Creates a node with a block for it
     */
-    node_t createBlock(int x, int y, int z, GLuint texID) {
+    node_t createBlock(int x, int y, int z, GLuint texID, bool invertNormals, bool affectedByLight) {
 
         node_t block;
         block.air = false;
-        block.noCollisionBox = false;
-        block.mesh = shapes::createCube(x, y, z);
+        block.mesh = shapes::createCube(x, y, z, invertNormals, affectedByLight);
         block.texture = texID;
         block.x = x;
         block.y = y;
@@ -75,12 +82,22 @@ namespace scene {
         return block;
     }
 
-    node_t createFlatSquare(GLuint texID) {
+    node_t createSkySphere(GLuint texID, float radius, int tesselation) {
+
+        node_t sphere;
+        sphere.mesh = shapes::createSphere(radius, tesselation);
+        sphere.texture = texID;
+        sphere.air = false;
+
+        return sphere;
+    }
+
+    node_t createFlatSquare(GLuint texID, bool invert) {
 
         node_t square;
-        square.mesh = shapes::createFlatSquare();
+        square.mesh = shapes::createFlatSquare(invert);
         square.texture = texID;
-
+        square.air = false;
         return square;
     }
 }

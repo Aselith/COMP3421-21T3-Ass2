@@ -15,20 +15,20 @@
 #include <ass2/static_mesh.hpp>
 #include <ass2/scene.hpp>
 #include <ass2/utility.hpp>
+#include <ass2/renderer.hpp>
 
 #include <iostream>
 
 const char *VERT_PATH = "res/shaders/default.vert";
 const char *FRAG_PATH = "res/shaders/default.frag";
-
-
-
+const int WIN_HEIGHT = 1280;
+const int WIN_WIDTH = 720;
 
 
 int main() {
 
     chicken3421::enable_debug_output();
-    GLFWwindow *window = marcify(chicken3421::make_opengl_window(1280, 720, "Assignment 2"));
+    GLFWwindow *window = marcify(chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "Assignment 2"));
 
     scene::world gameWorld;
 
@@ -36,31 +36,64 @@ int main() {
 
     glfwSetKeyCallback(window, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
         // Close program if esc is pressed
-        if (key == GLFW_KEY_ESCAPE) {
-            glfwSetWindowShouldClose(win, GLFW_TRUE);
+        if (action != GLFW_PRESS) return;
+        scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
+        switch(key) {
+            case GLFW_KEY_ESCAPE:
+                glfwSetWindowShouldClose(win, GLFW_TRUE);
+                break;
+            case GLFW_KEY_E:
+                gameWorld->switchHotbars();
+                break;
+            case GLFW_KEY_F:
+                gameWorld->toggleMode();
+                break;
+            case GLFW_KEY_G:
+                std::cout << "X: " << gameWorld->playerCamera.pos.x << " ";
+                std::cout << "Y: " << gameWorld->playerCamera.pos.y << " ";
+                std::cout << "Z: " << gameWorld->playerCamera.pos.z;
+                std::cout << "\n";
+                break;
         }
     });
 
-    // make the render program
+    // Setting up all the render informations
+    renderer::renderer_t renderInfo;
     auto vs = chicken3421::make_shader(VERT_PATH, GL_VERTEX_SHADER);
     auto fs = chicken3421::make_shader(FRAG_PATH, GL_FRAGMENT_SHADER);
-    auto render_program = chicken3421::make_program(vs, fs);
+    renderInfo.program = chicken3421::make_program(vs, fs);
     chicken3421::delete_shader(vs);
     chicken3421::delete_shader(fs);
 
-    GLint mvp_loc = chicken3421::get_uniform_location(render_program, "uMVP");
-    glm::mat4 proj = glm::perspective(glm::radians(60.0), (double) 1280 / (double) 720, 0.1, 50.0);
+    // Gets MVP_Loc
+    renderInfo.view_proj_loc = chicken3421::get_uniform_location(renderInfo.program, "uViewProj");
+	renderInfo.model_loc = chicken3421::get_uniform_location(renderInfo.program, "uModel");
+
+    // Get projection
+    renderInfo.projection = glm::perspective(glm::radians(60.0), (double) WIN_HEIGHT / (double) WIN_WIDTH, 0.1, 50.0);
+    // sunlight uniform locations
+    renderInfo.sun_direction_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.direction");
+    renderInfo.sun_color_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.color");
+    renderInfo.sun_ambient_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.ambient");
+
+    // material uniform locations
+    renderInfo.mat_tex_factor_loc =
+        chicken3421::get_uniform_location(renderInfo.program, "uMat.texFactor");
+    renderInfo.mat_color_loc = chicken3421::get_uniform_location(renderInfo.program, "uMat.color");
+    renderInfo.mat_diffuse_loc = chicken3421::get_uniform_location(renderInfo.program, "uMat.diffuse");
+
     gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
 
     // gameWorld.updateAllBlocksCulling();
 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
     // TODO - turn this on or off?
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
 
     /**
      * Setting up clicks
@@ -81,30 +114,36 @@ int main() {
         scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
 
         if (yoffset > 0) {
-            std::cout << "Going up\n";
             gameWorld->scrollHotbar(1);
         } else {
-            std::cout << "Going down\n";
             gameWorld->scrollHotbar(-1);
         }
     });
 
 
-    glUseProgram(render_program);
+    glm::vec3 sunPosition;
+    float degrees = 90;
+
     while (!glfwWindowShouldClose(window)) {
         float dt = utility::time_delta();
-        if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-            std::cout << "X: " << gameWorld.playerCamera.pos.x << " ";
-            std::cout << "Y: " << gameWorld.playerCamera.pos.y << " ";
-            std::cout << "Z: " << gameWorld.playerCamera.pos.z;
-            std::cout << "\n";
-        }
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearColor(0.f, 0.f, 0.2f, 1.f);
 
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+            degrees += 1.0f;
+        }
+        degrees += 0.02f;
+        if (degrees >= 360) {
+            degrees -= 360.0f;
+        }
+        sunPosition = glm::vec3(gameWorld.playerCamera.pos.x + (gameWorld.getSunDistance() - 10) * glm::cos(glm::radians(degrees)), gameWorld.playerCamera.pos.y + (gameWorld.getSunDistance() - 10) * glm::sin(glm::radians(degrees)), gameWorld.playerCamera.pos.z);
+
+        renderInfo.sun_light_dir = glm::normalize(gameWorld.playerCamera.pos - sunPosition);
+        // renderInfo.sun_light_dir = glm::normalize(sunPosition * glm::vec3(-1, -1, 1) - sunPosition);
+        renderInfo.changeSunlight(degrees);
+        
         gameWorld.updatePlayerPositions(window, dt);
+        gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees));
     
-        gameWorld.drawWorld(proj * player::get_view(gameWorld.playerCamera), mvp_loc);
+        gameWorld.drawWorld(renderInfo.projection * player::get_view(gameWorld.playerCamera), renderInfo);
         glfwSwapBuffers(window);
         glfwPollEvents();
 

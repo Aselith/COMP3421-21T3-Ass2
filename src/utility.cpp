@@ -8,6 +8,9 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+#include <iostream>
+#include <algorithm>
+
 namespace utility {
 
     float calculateDistance(glm::vec3 posA, glm::vec3 posB) {
@@ -25,4 +28,56 @@ namespace utility {
     float time_now() {
         return (float)glfwGetTime();
     }
+
+    void calcVertNormals(static_mesh::mesh_template_t& mesh_template) {
+		mesh_template.normals = std::vector<glm::vec3>(mesh_template.positions.size(), glm::vec3(0));
+
+		const auto& pos = mesh_template.positions;
+		for (auto i = size_t{0}; i < mesh_template.indices.size() - 2; i += 3) {
+			GLuint i1 = mesh_template.indices[i];
+			GLuint i2 = mesh_template.indices[i + 1];
+			GLuint i3 = mesh_template.indices[i + 2];
+			auto a = pos[i2] - pos[i1];
+			auto b = pos[i3] - pos[i1];
+			auto face_normal = glm::normalize(glm::cross(a, b));
+			mesh_template.normals[i1] += face_normal;
+			mesh_template.normals[i2] += face_normal;
+			mesh_template.normals[i3] += face_normal;
+		}
+		// normalise all the normals
+		for (auto i = size_t{0}; i < mesh_template.normals.size(); i++) {
+			mesh_template.normals[i] = glm::normalize(mesh_template.normals[i]);
+		}
+	}
+
+	void invertHalfNormals(static_mesh::mesh_template_t& mesh_template) {
+		for (auto i = size_t{mesh_template.normals.size() / 2}; i < mesh_template.normals.size(); i++) {
+			mesh_template.normals[i] *= -1;
+		}
+	}
+
+	void invertShape(static_mesh::mesh_template_t &meshTemplate) {
+		/*
+		for (size_t i = 0; i < meshTemplate.normals.size(); i++) {
+			meshTemplate.normals[i] *= -1;
+		}*/
+		for (size_t i = 0; i < meshTemplate.indices.size(); i += 3) {
+			int tempVariable = meshTemplate.indices[i + 1];
+			meshTemplate.indices[i + 1] = meshTemplate.indices[i + 2];
+			meshTemplate.indices[i + 2] = tempVariable;
+		}
+	}
+
+	int countFalses(std::vector<bool> vector) {
+		int total = 0;
+		for (auto i : vector) {
+			if (!i) {
+				total++;
+			}
+		}
+		return total;
+	}
+
+
+
 }

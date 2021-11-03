@@ -1,12 +1,13 @@
 #include <ass2/static_mesh.hpp>
 #include <ass2/shapes.hpp>
+#include <ass2/utility.hpp>
 
 namespace shapes {
 
     const float lengthOfTexture = 96.0;
     const float lengthOfSide = 16.0;
 
-    static_mesh::mesh_t createCube(int x, int y, int z) {
+    static_mesh::mesh_t createCube(int x, int y, int z, bool invertNormals, bool affectedByLight) {
         static_mesh::mesh_template_t cube;
 
         double xDbl = (double)x;
@@ -118,13 +119,22 @@ namespace shapes {
             20, 22, 23,
         };
 
-
+        utility::calcVertNormals(cube);
+        if (!affectedByLight) {
+            for (auto i = size_t{0}; i < cube.normals.size(); i++) {
+                cube.normals[i] = glm::vec3(0, 0, 0);
+            }
+        }
+        if (invertNormals) {
+            for (auto i = size_t{0}; i < cube.normals.size(); i++) {
+                cube.normals[i] *= -1;
+            }
+        }
         return static_mesh::init(cube);
     }
 
 
-
-    static_mesh::mesh_t createFlatSquare() {
+    static_mesh::mesh_t createFlatSquare(bool invert) {
         static_mesh::mesh_template_t square;
 
         square.positions = {
@@ -152,8 +162,55 @@ namespace shapes {
             0, 2, 3,
         };
 
-
+        utility::calcVertNormals(square);
+        for (auto i = size_t{0}; i < square.normals.size(); i++) {
+            square.normals[i] = glm::vec3(0, 0, 0);
+        }
+        if (invert) {
+            utility::invertShape(square);
+        }
         return static_mesh::init(square);
     }
+
+
+    static_mesh::mesh_t createSphere(float radius, unsigned int tessellation) {
+		static_mesh::mesh_template_t sphere;
+
+		float ang_inc = 2.0f * (float)M_PI / (float)tessellation;
+		unsigned int stacks = tessellation / 2;
+		unsigned int start_angle_i = 3 * tessellation / 4;
+		for (unsigned int i = start_angle_i; i <= start_angle_i + stacks; ++i) {
+			float alpha = ang_inc * (float)i;
+			float y = radius * std::sin(alpha);
+			float slice_radius = radius * std::cos(alpha);
+			for (unsigned int j = 0; j <= tessellation; ++j) {
+				float beta = ang_inc * (float)j;
+				float z = slice_radius * std::cos(beta);
+				float x = slice_radius * std::sin(beta);
+				sphere.positions.emplace_back(x, y, z);
+				sphere.tex_coords.emplace_back((float)j * 1.0f / (float)tessellation,
+				                               (float)(i - start_angle_i) * 2.0f / (float)tessellation);
+			}
+		}
+		// create the indices
+		for (unsigned int i = 1; i <= tessellation / 2; ++i) {
+			unsigned int prev = (1u + tessellation) * (i - 1);
+			unsigned int curr = (1u + tessellation) * i;
+			for (unsigned int j = 0; j < tessellation; ++j) {
+				sphere.indices.push_back(curr + j);
+				sphere.indices.push_back(prev + j);
+				sphere.indices.push_back(prev + j + 1);
+				sphere.indices.push_back(prev + j + 1);
+				sphere.indices.push_back(curr + j + 1);
+				sphere.indices.push_back(curr + j);
+			}
+		}
+
+        utility::calcVertNormals(sphere);
+        utility::invertShape(sphere);
+
+		return static_mesh::init(sphere);
+	}
+
 
 }

@@ -13,7 +13,6 @@ namespace static_mesh {
         GLuint vbo = 0;
         GLuint ebo = 0;
         GLsizei indices_count = 0;
-        std::vector<GLuint> indices;
     };
 
     // mesh_template_t contains potentially mesh attributes - to be used on initialisation only
@@ -22,6 +21,7 @@ namespace static_mesh {
         std::vector<glm::vec3> positions;
         std::vector<glm::vec3> colors;
         std::vector<glm::vec2> tex_coords;
+        std::vector<glm::vec3> normals;
         std::vector<GLuint> indices;
     };
 

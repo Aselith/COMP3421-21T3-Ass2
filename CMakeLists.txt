@@ -50,7 +50,6 @@ target_sources(${ACTIVITY}
         src/texture_2d.cpp
         src/static_mesh.cpp
         src/shapes.cpp
-        src/renderer.cpp
 
         src/main.cpp
         )

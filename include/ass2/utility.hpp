@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+#include <ass2/static_mesh.hpp>
+
 namespace utility {
     float calculateDistance(glm::vec3 posA, glm::vec3 posB);
 
@@ -21,6 +23,16 @@ namespace utility {
      * @return A float representing the difference between function calls in seconds.
      */
     float time_delta();
+
+
+    void calcVertNormals(static_mesh::mesh_template_t& mesh_template);
+    void invertHalfNormals(static_mesh::mesh_template_t& mesh_template);
+
+    void invertShape(static_mesh::mesh_template_t &meshTemplate);
+
+    int countFalses(std::vector<bool> vector);
+
+
 }
 
 #endif //COMP3421_ASS2_MEMES_HPP
