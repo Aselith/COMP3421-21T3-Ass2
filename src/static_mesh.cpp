@@ -96,12 +96,6 @@ namespace static_mesh {
         return mesh;
     }
 
-    void draw(const mesh_t &mesh, GLenum draw_mode) {
-        glBindVertexArray(mesh.vao);
-        glDrawElements(draw_mode, mesh.indices_count, GL_UNSIGNED_INT, nullptr);
-        glBindVertexArray(0);
-    }
-
     void destroy(const mesh_t &mesh) {
         glDeleteVertexArrays(1, &mesh.vao);
         glDeleteBuffers(1, &mesh.vbo);

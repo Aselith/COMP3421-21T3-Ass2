@@ -15,6 +15,14 @@ namespace shapes {
 
     static_mesh::mesh_t createSphere(float radius, unsigned int tessellation);
 
+    static_mesh::mesh_t createBed();
+    static_mesh::mesh_t createPlayerHead();
+    static_mesh::mesh_t createPlayerTorso();
+    static_mesh::mesh_t createPlayerLegRight();
+    static_mesh::mesh_t createPlayerLegLeft();
+    static_mesh::mesh_t createPlayerArmRight();
+    static_mesh::mesh_t createPlayerArmLeft();
+
 }
 
 #endif //COMP3421_SHAPES_HPP

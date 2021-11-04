@@ -23,9 +23,9 @@ namespace scene {
     const size_t WORLD_WIDTH = 125;
     const size_t WORLD_HEIGHT = 50;
 
-    const float GRAVITY = 1;
-    const float CAMERA_SPEED = 5;
-    const float JUMP_POWER = 0.25;
+    const float GRAVITY = 1.4f;
+    const float CAMERA_SPEED = 5.0f;
+    const float JUMP_POWER = 0.32f;
     const float EYE_LEVEL = 1.0f;
     const float PLAYER_RADIUS = 0.35f;
     const float SCREEN_DISTANCE = 0.25f;
@@ -60,6 +60,7 @@ namespace scene {
     node_t createBlock(int x, int y, int z, GLuint texID, bool invertNormals, bool affectedByLight);
     node_t createSkySphere(GLuint texID, float radius, int tesselation);
     node_t createFlatSquare(GLuint texID, bool invert);
+    node_t createBedPlayer(GLuint bedTexID, GLuint playerTexID);
     void destroy(const node_t *node);
 
     // WORLD = Everything that shows up on the screen is controlled from here
@@ -67,30 +68,34 @@ namespace scene {
     struct world {
 
         float walkingMultiplier = 0.5f;
+        bool cutsceneEnabled = false;
         player::playerPOV playerCamera;
+        glm::vec3 oldPos;
+        float oldYaw, oldPitch, desiredYaw;
         int increments = 200;
         int playerReachRange = 4 * increments;
-        int groundLevel = -99999, aboveLevel = 99999;
+        int groundLevel = -99999;
+        float cutsceneTick = 0;
 
         std::vector<std::vector<std::vector<node_t>>> terrain = {WORLD_WIDTH , std::vector< std::vector<node_t> > (WORLD_HEIGHT, std::vector<node_t> (WORLD_WIDTH) ) };
         std::vector<std::vector<std::vector<GLuint>>> blockMap = {WORLD_WIDTH , std::vector< std::vector<GLuint> > (WORLD_HEIGHT, std::vector<GLuint> (WORLD_WIDTH) ) };
         node_t screen;
         node_t centreOfWorldNode;
         node_t highlightedBlock;
+        node_t bed;
         
         std::vector<GLuint> hotbar;
         std::vector<GLuint> hotbarSecondary;
 
         std::vector<int> hotbarTextureIndex;
-        std::vector<GLuint> transparentTextures;
-        std::vector<GLuint> illuminatingTextures;
+        std::vector<GLuint> transparentTextures, illuminatingTextures;
 
         GLuint flyingIcon;
 
         int hotbarIndex = 0;
         int walkCycle = 0;
         int swingCycle = -1;
-        int handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0;
+        int handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0;
         bool flyingMode = false;
 
         world() {
@@ -101,14 +106,16 @@ namespace scene {
 
             flyingIcon = texture_2d::init("./res/textures/flying_mode.png", parameters);
 
+            bed = createBedPlayer(texture_2d::init("./res/textures/bed.png", parameters), texture_2d::init("./res/textures/player.png", parameters));
+
             highlightedBlock = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/highlight.png", parameters), false, true);
             highlightedBlock.scale = glm::vec3(1.001, 1.001, 1.001);
             // Setting up Sun
             node_t sun = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/sun.png", parameters), true, false);
             sun.scale = glm::vec3(4.0, 4.0, 4.0);
-            sun.translation.x += (float)getSunDistance() - 15;
+            sun.translation.x += (float)getSunDistance() - 13.2;
             node_t sunAura = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/sun_aura.png", parameters), true, false);
-            sunAura.scale = glm::vec3(1.2, 1.2, 1.2);
+            sunAura.scale = glm::vec3(1.05, 1.2, 1.2);
             sun.children.push_back(sunAura);
             // Setting up Moon
             node_t moon = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/moon.png", parameters), false, false);
@@ -189,6 +196,7 @@ namespace scene {
             skySphereIndex = centreOfWorld.children.size() - 1;
             centreOfWorld.children.push_back(sun);
             centreOfWorld.children.push_back(moon);
+            moonIndex = centreOfWorld.children.size() - 1;
             centreOfWorldNode.children.push_back(centreOfWorld);
             skyIndex = centreOfWorldNode.children.size() - 1;
 
@@ -206,6 +214,7 @@ namespace scene {
             GLuint dirtblockTexID = hotbar.back();
             hotbar.push_back(texture_2d::init("./res/textures/grass_block.png", parameters));
             GLuint grassblockTexID = hotbar.back();
+            hotbar.push_back(texture_2d::init("./res/textures/crafting_table.png", parameters));
             hotbar.push_back(texture_2d::init("./res/textures/oak_planks.png", parameters));
             hotbar.push_back(texture_2d::init("./res/textures/oak_log.png", parameters));
             hotbar.push_back(texture_2d::init("./res/textures/oak_leaves.png", parameters));
@@ -301,8 +310,96 @@ namespace scene {
             std::cout << "World Created\n";
         }
 
+        player::playerPOV getCurrCamera() {
+            return playerCamera;
+        }
+
+        void toggleCutscene() {
+            if (playerCamera.pos.y != groundLevel + EYE_LEVEL && !cutsceneEnabled) {
+                return;
+            } else if (!check3x3Area(playerCamera.pos) && !cutsceneEnabled) {
+                return;
+            }
+            cutsceneEnabled = !cutsceneEnabled;
+            if (cutsceneEnabled) {
+                cutsceneTick = (float) glfwGetTime();
+                oldPos = playerCamera.pos;
+                oldPitch = playerCamera.pitch;
+                oldYaw = playerCamera.yaw;
+                bed.translation = oldPos;
+                bed.translation.y -= EYE_LEVEL;
+                desiredYaw = oldYaw - 180.0f;
+                if (desiredYaw < 0.0f) {
+                    desiredYaw = 360.0f + desiredYaw;
+                } else if (desiredYaw >= 360.0f) {
+                    desiredYaw -= 360.0f;
+                }
+            } else {
+                playerCamera.pos = oldPos;
+                playerCamera.pitch = oldPitch;
+                playerCamera.yaw = oldYaw; 
+            }
+        }
+
+        bool check3x3Area(glm::vec3 pos) {
+            glm::vec3 tempPos;
+            tempPos.x = round(pos.x);
+            tempPos.z = round(pos.z);
+            tempPos.y = round(pos.y - EYE_LEVEL);
+            for (size_t i = tempPos.x - 1; i <= tempPos.x + 1; i++) {
+                for (size_t j = tempPos.z - 1; j <= tempPos.z + 1; j++) {
+                    if (!terrain[i][tempPos.y][j].air) {
+                        std::cout << "You are surrounded by blocks!\n";
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        bool getCutsceneStatus() {
+            return cutsceneEnabled;
+        }
+
+        void animateCutscene() {
+            auto now = (float) glfwGetTime() - cutsceneTick;
+
+            std::vector<glm::vec3> s1 = {
+                {0,   0.0, 0},
+                {0,   4.0, 0},
+                {4.0 * glm::sin(glm::radians(oldYaw)), 0.0, 4.0 * -glm::cos(glm::radians(oldYaw))},
+                {4.0 * glm::sin(glm::radians(oldYaw)), 4.0, 4.0 * -glm::cos(glm::radians(oldYaw))},
+            };
+
+            std::vector<glm::vec3> s2 = {
+                {0,   0.0, 0},
+                {0.5, 0.0, 0},
+                {0.5, 1.0, 0},
+                {1.0, 1.0, 0},
+            };
+
+            for (size_t i = 0; i < s1.size(); i++) {
+                s1[i] += oldPos;
+            }
+
+            float t = 0.25 * now;
+            if (t > 1.0f) {
+                t = 1.0f;
+            }
+            playerCamera.yaw = oldYaw - (oldYaw - desiredYaw) * utility::cubicBezier(s2, t).y;
+            playerCamera.pitch = oldPitch - (oldPitch + 30.0f) * utility::cubicBezier(s2, t).y;
+
+            playerCamera.pos = oldPos + ((utility::cubicBezier(s1, t) - oldPos) * utility::cubicBezier(s2, t).y);
+            return;
+        }
+
+        void tickStars() {
+            for (size_t i = 0; i < centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children.size(); i++) {
+                centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[i].air = (rand() % 10 == 0);
+            }
+        }
+
         void switchHotbars() {
-            
             std::vector<GLuint> tempHotbar = hotbar;
             hotbar.clear();
             for (auto i : hotbarSecondary) {
@@ -318,6 +415,7 @@ namespace scene {
         }
 
         void updateSunPosition(float degree, glm::vec3 skyColor) {
+            tickStars();
             centreOfWorldNode.children[skyIndex].translation = playerCamera.pos;
             centreOfWorldNode.children[skyIndex].translation.y -= EYE_LEVEL;
             centreOfWorldNode.children[skyIndex].rotation = glm::vec3(0,0,degree);
@@ -394,11 +492,12 @@ namespace scene {
         }
     
         glm::vec3 findCursorBlock(bool giveBlockBefore) {
+            if (cutsceneEnabled) return glm::vec3(-1, -1, -1); 
             glm::vec3 lookingDirection = player::getLookingDirection(playerCamera, increments);
             float rayX = playerCamera.pos.x, rayY = playerCamera.pos.y, rayZ = playerCamera.pos.z;
 
             if (isCoordOutBoundaries((int)round(rayX), (int)round(rayY), (int)round(rayZ))) {
-                 return glm::vec3(-1, -1, -1);
+                return glm::vec3(-1, -1, -1);
             }
             int limit = 0;
             while (terrain[(int)round(rayX)][(int)round(rayY)][(int)round(rayZ)].air && limit < playerReachRange) {
@@ -480,7 +579,7 @@ namespace scene {
          */
         void updatePlayerPositions(GLFWwindow *window, float dt) {
             swingHand();
-            player::update_player_camera(playerCamera, window, dt);
+            player::update_cam_angles(playerCamera, window, dt);
 
             if (flyingMode) {
                 playerCamera.yVelocity = 0;
@@ -706,92 +805,66 @@ namespace scene {
 
             drawElement(&centreOfWorldNode, glm::mat4(1.0f), renderInfo);
             drawTerrain(glm::mat4(1.0f), renderInfo);
-
+            
+            // Drawing the highlighted block
             highlightedBlock.translation = findCursorBlock(false);
             if (!isCoordOutBoundaries(highlightedBlock.translation.x, highlightedBlock.translation.y, highlightedBlock.translation.z)) {
                 drawElement(&highlightedBlock, glm::mat4(1.0f), renderInfo);
             }
 
-            drawscreen(glm::mat4(1.0f), renderInfo);
-
-            
+            // Draw bed if cutscene is occuring, otherwise draw HUD
+            if (!cutsceneEnabled) {
+                drawScreen(glm::mat4(1.0f), renderInfo);
+            } else {
+                drawElement(&bed, glm::mat4(1.0f), renderInfo);
+            }
         }
 
         void drawTerrain(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
 
             std::vector<glm::vec3> transparentBlocks;
 
-            glm::vec3 pos = playerCamera.pos;
-
-            pos.x -= glm::sin(glm::radians(90.0f)) * glm::sin(glm::radians(playerCamera.yaw));
-            pos.z -= -glm::sin(glm::radians(90.0f)) * glm::cos(glm::radians(playerCamera.yaw));
-            glm::vec2 yRange = glm::vec2((int)(pos.y - RENDER_DISTANCE), (int)(pos.y + RENDER_DISTANCE));
-            glm::vec2 xRange = glm::vec2((int)(pos.x - RENDER_DISTANCE), (int)(pos.x + RENDER_DISTANCE));
-            glm::vec2 zRange = glm::vec2((int)(pos.z - RENDER_DISTANCE), (int)(pos.z + RENDER_DISTANCE));
-
-            std::vector<glm::vec3> returnVector;
-
-            auto pointA = glm::vec3 (
-                pos.x + glm::sin(glm::radians(90.0f)) * glm::sin(glm::radians(playerCamera.yaw - 90.0f)) * RENDER_DISTANCE,
-                0,
-                pos.z + -glm::sin(glm::radians(90.0f)) * glm::cos(glm::radians(playerCamera.yaw - 90.0f)) * RENDER_DISTANCE
-            );
-
-            auto pointB = glm::vec3 (
-                pos.x + glm::sin(glm::radians(90.0f)) * glm::sin(glm::radians(playerCamera.yaw - 90.0f)) * RENDER_DISTANCE,
-                0,
-                pos.z + -glm::sin(glm::radians(90.0f)) * glm::cos(glm::radians(playerCamera.yaw - 90.0f)) * RENDER_DISTANCE
-            );
+            glm::vec2 yRange = glm::vec2((int)(playerCamera.pos.y - RENDER_DISTANCE), (int)(playerCamera.pos.y + RENDER_DISTANCE));
+            glm::vec2 xRange = glm::vec2((int)(playerCamera.pos.x - RENDER_DISTANCE), (int)(playerCamera.pos.x + RENDER_DISTANCE));
+            glm::vec2 zRange = glm::vec2((int)(playerCamera.pos.z - RENDER_DISTANCE), (int)(playerCamera.pos.z + RENDER_DISTANCE));
+            glm::vec3 lookingDir = player::getLookingDirection(playerCamera, 1);
 
             for (int y = yRange.x; y < yRange.y; y++) {
                 for (int z = zRange.x; z < zRange.y; z++) {
                     for (int x = xRange.x; x < xRange.y; x++) {
-    
-                        bool renderBlock = false;
 
                         if (isCoordOutBoundaries(x, y, z)) {
                             continue;
-                        } else if (utility::calculateDistance(glm::vec3(x, y, z), glm::vec3(pos.x, pos.y, pos.z)) <= RENDER_DISTANCE) {
-
-                            if (abs(playerCamera.pitch) > 50.0f) {
-                                renderBlock = true;
-                            } else {
-                                glm::vec3 vec1 = pointB - glm::vec3(pos.x, 0, pos.z);
-                                glm::vec3 vec2 = glm::vec3(x, 0, z) - glm::vec3(pos.x, 0, pos.z);
-                                auto product = glm::cross(vec1, vec2);
-                                if (product.y <= 0) {
-                                    renderBlock = true;
-                                }
-                            }
-
-                            if (renderBlock && !terrain[x][y][z].air) {
-                                // Figuring out which sides should be rendered or not.
-                                // Only render side if it has air next to it
-                                std::vector<bool> faces(6, true);
-
-                                if (terrain[x][y][z].transparent) {
-                                    transparentBlocks.push_back(glm::vec3(x, y, z));
-                                    continue;
-                                }
-
-                                getHiddenFaces(x, y, z, faces, true);
-
-                                if (utility::countFalses(faces) < 6) {
-                                    drawBlock(&terrain[x][y][z], parent_mvp, renderInfo, faces);
-                                }
-                                
-                            } else if (blockMap[x][y][z] != -1) {
-                                placeBlock(scene::createBlock(x, y, z, blockMap[x][y][z], false, true));
-                                blockMap[x][y][z] = -1;
-                            }
-
+                        } else if (terrain[x][y][z].air && blockMap[x][y][z] != -1) {
+                            placeBlock(scene::createBlock(x, y, z, blockMap[x][y][z], false, true));
+                            blockMap[x][y][z] = -1;
+                            continue;
+                        } else if (terrain[x][y][z].air) {
+                            continue;
                         }
 
+                        if (utility::isPointInHemisphere(playerCamera.pos, lookingDir, glm::vec3(x, y, z), RENDER_DISTANCE)) {
+                            
+                            // Figuring out which sides should be rendered or not.
+                            // Only render side if it has air next to it
+                            std::vector<bool> faces(6, true);
+
+                            if (terrain[x][y][z].transparent) {
+                                transparentBlocks.push_back(glm::vec3(x, y, z));
+                                continue;
+                            }
+
+                            getHiddenFaces(x, y, z, faces, true);
+
+                            if (utility::countFalses(faces) < 6) {
+                                drawBlock(&terrain[x][y][z], parent_mvp, renderInfo, faces);
+                            }
+                        }
                     }
                 }
             }
 
-
+            // Draws transparent blocks last
             for (auto i : transparentBlocks) {
                 std::vector<bool> faces(6, true);
                 getHiddenFaces(i.x, i.y, i.z, faces, false);
@@ -824,7 +897,7 @@ namespace scene {
             }
         }
 
-        void drawscreen(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
+        void drawScreen(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
 
             screen.translation = playerCamera.pos;
             screen.rotation.x = playerCamera.pitch;

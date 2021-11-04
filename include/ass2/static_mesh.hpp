@@ -22,6 +22,7 @@ namespace static_mesh {
         std::vector<glm::vec3> colors;
         std::vector<glm::vec2> tex_coords;
         std::vector<glm::vec3> normals;
+        std::vector<glm::vec3> triPos;
         std::vector<GLuint> indices;
     };
 

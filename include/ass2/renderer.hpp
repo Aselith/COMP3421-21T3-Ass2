@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+#include <chicken3421/chicken3421.hpp>
+
 #include <ass2/scene.hpp>
 #include <iostream>
 
@@ -27,15 +29,37 @@ namespace renderer {
 		GLint view_proj_loc;
 		GLint model_loc;
 
-		// TODO: fragment directional light uniforms
 		GLint sun_direction_loc;
 		GLint sun_color_loc;
 		GLint sun_ambient_loc;
 
-		// TODO: add more fragment material uniforms
 		GLint mat_tex_factor_loc;
 		GLint mat_color_loc;
 		GLint mat_diffuse_loc;
+
+		void initialise(int height, int width) {
+			auto vs = chicken3421::make_shader("res/shaders/default.vert", GL_VERTEX_SHADER);
+			auto fs = chicken3421::make_shader("res/shaders/default.frag", GL_FRAGMENT_SHADER);
+			program = chicken3421::make_program(vs, fs);
+			chicken3421::delete_shader(vs);
+			chicken3421::delete_shader(fs);
+
+			// Gets MVP_Loc
+			view_proj_loc = chicken3421::get_uniform_location(program, "uViewProj");
+			model_loc = chicken3421::get_uniform_location(program, "uModel");
+
+			// Get projection
+			projection = glm::perspective(glm::radians(60.0), (double) height / (double) width, 0.1, 50.0);
+			// sunlight uniform locations
+			sun_direction_loc = chicken3421::get_uniform_location(program, "uSun.direction");
+			sun_color_loc = chicken3421::get_uniform_location(program, "uSun.color");
+			sun_ambient_loc = chicken3421::get_uniform_location(program, "uSun.ambient");
+
+			// material uniform locations
+			mat_tex_factor_loc = chicken3421::get_uniform_location(program, "uMat.texFactor");
+			mat_color_loc = chicken3421::get_uniform_location(program, "uMat.color");
+			mat_diffuse_loc = chicken3421::get_uniform_location(program, "uMat.diffuse");
+		}
 
 		void changeSunlight(float degree) {
 

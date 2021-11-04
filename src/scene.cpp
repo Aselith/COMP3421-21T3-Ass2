@@ -45,7 +45,8 @@ namespace scene {
             glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
             glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
 
-            static_mesh::draw(node->mesh, GL_TRIANGLES);
+            glBindVertexArray(node->mesh.vao);
+            glDrawElements(GL_TRIANGLES, node->mesh.indices_count, GL_UNSIGNED_INT, nullptr);
             glBindVertexArray(0);
         }
         
@@ -99,5 +100,69 @@ namespace scene {
         square.texture = texID;
         square.air = false;
         return square;
+    }
+
+    node_t createBedPlayer(GLuint bedTexID, GLuint playerTexID) {
+
+        node_t bed;
+        bed.mesh = shapes::createBed();
+        bed.texture = bedTexID;
+        bed.translation = glm::vec3(WORLD_WIDTH / 2.0f, 4.0f, WORLD_WIDTH / 2.0f);
+        bed.air = false;
+
+        node_t player;
+
+        node_t playerTorso;
+        playerTorso.mesh = shapes::createPlayerTorso();
+        playerTorso.texture = playerTexID;
+        playerTorso.air = false;
+
+        node_t playerHead;
+        playerHead.mesh = shapes::createPlayerHead();
+        playerHead.texture = playerTexID;
+        playerHead.translation.y += 0.0625 * 10;
+        playerHead.air = false;
+        playerHead.rotation.x += 12.5f;
+        playerTorso.children.push_back(playerHead);
+
+        node_t playerLeftArm;
+        playerLeftArm.mesh = shapes::createPlayerArmLeft();
+        playerLeftArm.texture = playerTexID;
+        playerLeftArm.translation.x += 0.0625 * 6.2;
+        playerLeftArm.air = false;
+        playerLeftArm.rotation.z += 2.5f;
+        playerTorso.children.push_back(playerLeftArm);
+
+        node_t playerLeftLeg;
+        playerLeftLeg.mesh = shapes::createPlayerLegLeft();
+        playerLeftLeg.texture = playerTexID;
+        playerLeftLeg.translation.y -= 0.0625 * 12;
+        playerLeftLeg.translation.x += 0.0625 * 2;
+        playerLeftLeg.air = false;
+        playerTorso.children.push_back(playerLeftLeg);
+
+        node_t playerRightArm;
+        playerRightArm.mesh = shapes::createPlayerArmRight();
+        playerRightArm.texture = playerTexID;
+        playerRightArm.translation.x -= 0.0625 * 6.2;
+        playerRightArm.air = false;
+        playerRightArm.rotation.z -= 2.5f;
+        playerTorso.children.push_back(playerRightArm);
+
+        node_t playerRightLeg;
+        playerRightLeg.mesh = shapes::createPlayerLegRight();
+        playerRightLeg.texture = playerTexID;
+        playerRightLeg.translation.y -= 0.0625 * 12;
+        playerRightLeg.translation.x -= 0.0625 * 2;
+        playerRightLeg.air = false;
+        playerTorso.children.push_back(playerRightLeg);
+
+        player.translation.y += 0.0625 * 3;
+        player.translation.z -= 0.0625 * 2;
+        player.rotation.x -= 90.0f;
+        player.children.push_back(playerTorso);
+        bed.children.push_back(player);
+
+        return bed;
     }
 }

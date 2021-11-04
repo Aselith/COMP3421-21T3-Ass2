@@ -26,11 +26,18 @@ namespace utility {
 
 
     void calcVertNormals(static_mesh::mesh_template_t& mesh_template);
+
+    void calcTrianglePos(static_mesh::mesh_template_t& mesh_template);
+
     void invertHalfNormals(static_mesh::mesh_template_t& mesh_template);
 
     void invertShape(static_mesh::mesh_template_t &meshTemplate);
 
     int countFalses(std::vector<bool> vector);
+
+    bool isPointInHemisphere(glm::vec3 centre, glm::vec3 tip, glm::vec3 point, int renderDist);
+
+    glm::vec3 cubicBezier(const std::vector<glm::vec3> &control_points, float t);
 
 
 }

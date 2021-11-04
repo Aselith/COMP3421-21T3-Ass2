@@ -13,6 +13,17 @@ namespace player {
         float yaw;
         float pitch;
         float yVelocity;
+
+
+        glm::mat4 get_view() {
+            // calculate the rotated coordinate frame
+            glm::mat4 yawed = glm::rotate(glm::mat4(1.0), -glm::radians(yaw), glm::vec3(0, 1, 0));
+            glm::mat4 pitched = glm::rotate(glm::mat4(1.0), glm::radians(pitch), glm::vec3(1, 0, 0));
+            // transpose for inverted transformation
+            glm::mat4 view = glm::transpose(yawed * pitched);
+            view *= glm::translate(glm::mat4(1.0), -pos);
+            return view;
+        }
     };
 
     /**
@@ -36,7 +47,7 @@ namespace player {
      * @param window - glfw window
      * @param dt - delta time
      */
-    void update_player_camera(playerPOV &cam, GLFWwindow *window, float dt);
+    void update_cam_angles(playerPOV &cam, GLFWwindow *window, float dt);
 
     /**
      * Gets a vector that is in the direction of where the player is facing.

@@ -19,8 +19,6 @@
 
 #include <iostream>
 
-const char *VERT_PATH = "res/shaders/default.vert";
-const char *FRAG_PATH = "res/shaders/default.frag";
 const int WIN_HEIGHT = 1280;
 const int WIN_WIDTH = 720;
 
@@ -51,48 +49,28 @@ int main() {
             case GLFW_KEY_G:
                 std::cout << "X: " << gameWorld->playerCamera.pos.x << " ";
                 std::cout << "Y: " << gameWorld->playerCamera.pos.y << " ";
-                std::cout << "Z: " << gameWorld->playerCamera.pos.z;
-                std::cout << "\n";
+                std::cout << "Z: " << gameWorld->playerCamera.pos.z << "\n";
+                std::cout << "Yaw: " << gameWorld->playerCamera.yaw << "\n";
+                std::cout << "Pitch: " << gameWorld->playerCamera.pitch << "\n";
+                break;
+            case GLFW_KEY_C:
+                gameWorld->toggleCutscene();
                 break;
         }
     });
 
     // Setting up all the render informations
     renderer::renderer_t renderInfo;
-    auto vs = chicken3421::make_shader(VERT_PATH, GL_VERTEX_SHADER);
-    auto fs = chicken3421::make_shader(FRAG_PATH, GL_FRAGMENT_SHADER);
-    renderInfo.program = chicken3421::make_program(vs, fs);
-    chicken3421::delete_shader(vs);
-    chicken3421::delete_shader(fs);
-
-    // Gets MVP_Loc
-    renderInfo.view_proj_loc = chicken3421::get_uniform_location(renderInfo.program, "uViewProj");
-	renderInfo.model_loc = chicken3421::get_uniform_location(renderInfo.program, "uModel");
-
-    // Get projection
-    renderInfo.projection = glm::perspective(glm::radians(60.0), (double) WIN_HEIGHT / (double) WIN_WIDTH, 0.1, 50.0);
-    // sunlight uniform locations
-    renderInfo.sun_direction_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.direction");
-    renderInfo.sun_color_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.color");
-    renderInfo.sun_ambient_loc = chicken3421::get_uniform_location(renderInfo.program, "uSun.ambient");
-
-    // material uniform locations
-    renderInfo.mat_tex_factor_loc =
-        chicken3421::get_uniform_location(renderInfo.program, "uMat.texFactor");
-    renderInfo.mat_color_loc = chicken3421::get_uniform_location(renderInfo.program, "uMat.color");
-    renderInfo.mat_diffuse_loc = chicken3421::get_uniform_location(renderInfo.program, "uMat.diffuse");
+    renderInfo.initialise(WIN_HEIGHT, WIN_WIDTH);
+    
 
     gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
-
-    // gameWorld.updateAllBlocksCulling();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
-    // TODO - turn this on or off?
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /**
@@ -124,26 +102,32 @@ int main() {
     glm::vec3 sunPosition;
     float degrees = 90;
 
+    glUseProgram(renderInfo.program);
     while (!glfwWindowShouldClose(window)) {
         float dt = utility::time_delta();
 
-        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-            degrees += 1.0f;
+        if (gameWorld.cutsceneEnabled) {
+            degrees += 2.50f;
+        } else {
+            degrees += 0.02f;
         }
-        degrees += 0.02f;
+        
         if (degrees >= 360) {
             degrees -= 360.0f;
         }
         sunPosition = glm::vec3(gameWorld.playerCamera.pos.x + (gameWorld.getSunDistance() - 10) * glm::cos(glm::radians(degrees)), gameWorld.playerCamera.pos.y + (gameWorld.getSunDistance() - 10) * glm::sin(glm::radians(degrees)), gameWorld.playerCamera.pos.z);
 
         renderInfo.sun_light_dir = glm::normalize(gameWorld.playerCamera.pos - sunPosition);
-        // renderInfo.sun_light_dir = glm::normalize(sunPosition * glm::vec3(-1, -1, 1) - sunPosition);
         renderInfo.changeSunlight(degrees);
-        
-        gameWorld.updatePlayerPositions(window, dt);
+
+        if (gameWorld.getCutsceneStatus()) {
+            gameWorld.animateCutscene();
+        } else {
+            gameWorld.updatePlayerPositions(window, dt);
+        }
+
         gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees));
-    
-        gameWorld.drawWorld(renderInfo.projection * player::get_view(gameWorld.playerCamera), renderInfo);
+        gameWorld.drawWorld(renderInfo.projection * gameWorld.getCurrCamera().get_view(), renderInfo);
         glfwSwapBuffers(window);
         glfwPollEvents();
 

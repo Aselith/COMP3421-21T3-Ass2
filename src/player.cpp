@@ -51,10 +51,6 @@ namespace player {
         }
     }
 
-    void update_player_camera(playerPOV &cam, GLFWwindow *window, float dt) {
-        update_cam_angles(cam, window, dt);
-    }
-
     glm::vec3 getLookingDirection(playerPOV &cam, int increments) {
         return glm::vec3 (
             glm::sin(glm::radians(90 - cam.pitch)) * glm::sin(glm::radians(cam.yaw)) / increments,
