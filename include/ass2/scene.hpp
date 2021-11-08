@@ -23,19 +23,26 @@ namespace scene {
     const size_t WORLD_WIDTH = 125;
     const size_t WORLD_HEIGHT = 50;
 
+    const size_t MAX_STARS = 777;
+
     const float GRAVITY = 1.4f;
     const float CAMERA_SPEED = 5.0f;
     const float JUMP_POWER = 0.32f;
-    const float EYE_LEVEL = 1.0f;
     const float PLAYER_RADIUS = 0.35f;
     const float SCREEN_DISTANCE = 0.25f;
-    const int RENDER_DISTANCE = 15;
+    const int RENDER_DISTANCE = 13;
 
     struct node_t {
         static_mesh::mesh_t mesh;
-        GLuint texture = 0;
+
+        // Materials
+        GLuint textureID = 0;
+        GLuint specularID = 0;
         glm::vec4 color = glm::vec4(1.0f);
-		glm::vec3 diffuse = glm::vec4(1.0f);
+        glm::vec3 ambient = glm::vec3(1.0f);
+		glm::vec3 diffuse = glm::vec3(1.0f);
+		glm::vec4 specular = glm::vec4(1.0f);
+		float phong_exp = 5.0f;
 
         glm::vec3 translation = glm::vec3(0.0);
         glm::vec3 rotation = glm::vec3(0.0);
@@ -43,9 +50,18 @@ namespace scene {
         std::vector<node_t> children;
 
         int x = 0, y = 0, z = 0;
-        bool air = true;
+        int lightID = -1;
+        bool air = true, transparent = true, illuminating = false, ignoreCulling = false;
+    };
+
+    struct blockData {
+        GLuint texture = 0;
+        GLuint specularMap = 0;
+        glm::vec3 rgb = {0, 0, 0};
         bool transparent = true;
         bool illuminating = false;
+        bool rotatable = false;
+        float intensity = 1.0f;
     };
     
     /**
@@ -54,28 +70,34 @@ namespace scene {
      * @param parent_mvp - the parent's model view transform
      * @param mvp_loc - the location of the uniform mvp variable in the render program
      */
-    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces);
-    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo);
+    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces, GLuint defaultSpecular);
+    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular);
 
-    node_t createBlock(int x, int y, int z, GLuint texID, bool invertNormals, bool affectedByLight);
+    blockData combineBlockData(GLuint texID, GLuint specID, bool transparent, bool illuminating, bool rotatable = false, glm::vec3 color = {0, 0, 0}, float intensity = 1.0f);
+
+    node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool invertNormals, bool affectedByLight);
+    node_t createBlock(int x, int y, int z, blockData data, bool invertNormals, bool affectedByLight);
     node_t createSkySphere(GLuint texID, float radius, int tesselation);
     node_t createFlatSquare(GLuint texID, bool invert);
     node_t createBedPlayer(GLuint bedTexID, GLuint playerTexID);
-    void destroy(const node_t *node);
+    void destroy(const node_t *node, bool destroyTexture);
 
     // WORLD = Everything that shows up on the screen is controlled from here
 
     struct world {
 
+        float eyeLevel = 1.0f;
+        bool shiftMode = false;
         float walkingMultiplier = 0.5f;
         bool cutsceneEnabled = false;
         player::playerPOV playerCamera;
-        glm::vec3 oldPos;
+        glm::vec3 oldPos, oldHandPos, oldHandRotation;
         float oldYaw, oldPitch, desiredYaw;
         int increments = 200;
         int playerReachRange = 4 * increments;
         int groundLevel = -99999;
         float cutsceneTick = 0;
+        GLuint defaultSpecular = texture_2d::init("./res/textures/blocks/default_specular.png");
 
         std::vector<std::vector<std::vector<node_t>>> terrain = {WORLD_WIDTH , std::vector< std::vector<node_t> > (WORLD_HEIGHT, std::vector<node_t> (WORLD_WIDTH) ) };
         std::vector<std::vector<std::vector<GLuint>>> blockMap = {WORLD_WIDTH , std::vector< std::vector<GLuint> > (WORLD_HEIGHT, std::vector<GLuint> (WORLD_WIDTH) ) };
@@ -84,13 +106,10 @@ namespace scene {
         node_t highlightedBlock;
         node_t bed;
         
-        std::vector<GLuint> hotbar;
-        std::vector<GLuint> hotbarSecondary;
+        std::vector<blockData> hotbar;
+        std::vector<blockData> hotbarSecondary;
 
         std::vector<int> hotbarTextureIndex;
-        std::vector<GLuint> transparentTextures, illuminatingTextures;
-
-        GLuint flyingIcon;
 
         int hotbarIndex = 0;
         int walkCycle = 0;
@@ -99,79 +118,78 @@ namespace scene {
         bool flyingMode = false;
 
         world() {
-            
-            texture_2d::params_t parameters;
-            parameters.filter_min = GL_NEAREST;
-            parameters.filter_max = GL_NEAREST;
+            GLuint flyingIcon = texture_2d::init("./res/textures/flying_mode.png");
 
-            flyingIcon = texture_2d::init("./res/textures/flying_mode.png", parameters);
+            bed = createBedPlayer(texture_2d::init("./res/textures/bed.png"), texture_2d::init("./res/textures/player.png"));
 
-            bed = createBedPlayer(texture_2d::init("./res/textures/bed.png", parameters), texture_2d::init("./res/textures/player.png", parameters));
-
-            highlightedBlock = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/highlight.png", parameters), false, true);
+            highlightedBlock = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/highlight.png"), -1, false, true);
             highlightedBlock.scale = glm::vec3(1.001, 1.001, 1.001);
             // Setting up Sun
-            node_t sun = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/sun.png", parameters), true, false);
+            node_t sun = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/sun.png"), -1, true, false);
             sun.scale = glm::vec3(4.0, 4.0, 4.0);
             sun.translation.x += (float)getSunDistance() - 13.2;
-            node_t sunAura = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/sun_aura.png", parameters), true, false);
+            GLuint auraTextureID = texture_2d::init("./res/textures/blocks/sun_aura.png");
+            node_t sunAura = scene::createBlock(0, 0, 0, auraTextureID, -1, true, false);
             sunAura.scale = glm::vec3(1.05, 1.2, 1.2);
             sun.children.push_back(sunAura);
             // Setting up Moon
-            node_t moon = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/moon.png", parameters), false, false);
+            node_t moon = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/moon.png"), -1, false, false);
             moon.scale = glm::vec3(4.0, 4.0, 4.0);
             moon.translation.x -= (float)getSunDistance();
 
             // Generating random stars
             srand(time(0));
-            GLuint starTexID = texture_2d::init("./res/textures/star.png", parameters);
-            for (int i = 0; i < 777; i++) {
-                node_t star = scene::createBlock(0, 0, 0, starTexID, false, false);
+            GLuint starTexBlueID = texture_2d::init("./res/textures/blocks/star_blue.png");
+            GLuint starTexYellowID = texture_2d::init("./res/textures/blocks/star_yellow.png");
+            auto starDistance = (RENDER_DISTANCE >= 15) ? RENDER_DISTANCE : 15;  
+            
+            for (int i = 0; i < MAX_STARS; i++) {
+                node_t star = scene::createBlock(0, 0, 0, (rand() % 2) ? starTexBlueID : starTexYellowID, -1, false, false);
                 int rng = rand() % 6;
                 if (rng == 5) {
                     rng = 0;
                 }
                 switch (rng) {
                     case 0:
-                        star.translation.x += 3;
+                        star.translation.x += 3.2f;
                 
-                        star.translation.y += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.y += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
                         if (rand() % 2 == 0) {
                             star.translation.y *= -1;
                         }
-                        star.translation.z += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.z += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
                         if (rand() % 2 == 0) {
                             star.translation.z *= -1;
                         }
                         break;
                     case 1:
-                        star.translation.x += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f) - 1;
-                        star.translation.y += RENDER_DISTANCE / 3;
-                        star.translation.z += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.x += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f) - 1;
+                        star.translation.y += starDistance / 3;
+                        star.translation.z += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
                         if (rand() % 2 == 0) {
                             star.translation.z *= -1;
                         }
                         break;
                     case 2:
-                        star.translation.x += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f) - 1;
-                        star.translation.y -= RENDER_DISTANCE / 3;
-                        star.translation.z += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.x += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f) - 1;
+                        star.translation.y -= starDistance / 3;
+                        star.translation.z += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
                         if (rand() % 2 == 0) {
                             star.translation.z *= -1;
                         }
                         break;
                     case 3:
-                        star.translation.x += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f) - 1;
-                        star.translation.y += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
-                        star.translation.z += RENDER_DISTANCE / 3;
+                        star.translation.x += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f) - 1;
+                        star.translation.y += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.z += starDistance / 3;
                         if (rand() % 2 == 0) {
                             star.translation.y *= -1;
                         }
                         break;
                     case 4:
-                        star.translation.x += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f) - 1;
-                        star.translation.y += (float)((rand() % RENDER_DISTANCE) / 2) + (float)((rand() % 10) / 10.0f);
-                        star.translation.z -= RENDER_DISTANCE / 3;
+                        star.translation.x += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f) - 1;
+                        star.translation.y += (float)((rand() % starDistance) / 2) + (float)((rand() % 10) / 10.0f);
+                        star.translation.z -= starDistance / 3;
                         if (rand() % 2 == 0) {
                             star.translation.y *= -1;
                         }
@@ -182,12 +200,19 @@ namespace scene {
                 star.rotation.x += (rand() % 10) / 10.0f;
                 star.rotation.y += (rand() % 10) / 10.0f;
                 star.rotation.z += (rand() % 10) / 10.0f;
+
+                if (rand() % 10 == 0) {
+                    // 1 in 10 chance that the star has an aura around it
+                    star.children.push_back(scene::createBlock(0, 0, 0, auraTextureID, -1, false, false));
+                    star.children.back().scale = glm::vec3(2.5f, 2.5f, 2.5f);
+                }
+
                 moon.children.push_back(star);
             }
 
             node_t centreOfWorld;
             node_t skySphere = createSkySphere(0, (float)getSunDistance(), 256);
-            // skySphere.texture = texture_2d::init("./res/textures/sky.png", parameters);
+            // skySphere.texture = texture_2d::init("./res/textures/sky.png");
             skySphere.rotation = glm::vec3(0, 0, 90);
             skySphere.translation.x -= 15;
             skySphere.diffuse = glm::vec4((float)173/255, (float)216/255, (float)230/255, 1.0f);
@@ -203,52 +228,63 @@ namespace scene {
             // Setting up HUD
 
             // Crosshair
-            node_t crosshair = scene::createFlatSquare(texture_2d::init("./res/textures/crosshair.png", parameters), false);
+            node_t crosshair = scene::createFlatSquare(texture_2d::init("./res/textures/crosshair.png"), false);
             crosshair.translation.z = -1 * SCREEN_DISTANCE;
             crosshair.scale = glm::vec3(0.02, 0.02, 0.02);
             screen.children.push_back(crosshair);
 
             // ADD BLOCKS HERE
             // First hotbar
-            hotbar.push_back(texture_2d::init("./res/textures/dirt.png", parameters));
-            GLuint dirtblockTexID = hotbar.back();
-            hotbar.push_back(texture_2d::init("./res/textures/grass_block.png", parameters));
-            GLuint grassblockTexID = hotbar.back();
-            hotbar.push_back(texture_2d::init("./res/textures/crafting_table.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/oak_planks.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/oak_log.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/oak_leaves.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/cobblestone.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/mossy_cobblestone.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/stone.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/stone_bricks.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/glass.png", parameters));
-            transparentTextures.push_back(hotbar.back());
-            hotbar.push_back(texture_2d::init("./res/textures/sea_lantern.png", parameters));
-            illuminatingTextures.push_back(hotbar.back());
-            hotbar.push_back(texture_2d::init("./res/textures/tnt.png", parameters));
-            hotbar.push_back(texture_2d::init("./res/textures/bedrock.png", parameters));
-            GLuint bedrockTexID = hotbar.back();
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/dirt.png"), -1, false, false));
+            GLuint dirtblockTexID = hotbar.back().texture;
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/grass_block.png"), -1, false, false));
+            GLuint grassblockTexID = hotbar.back().texture;
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/barrel.png"), texture_2d::init("./res/textures/barrel_specular.png"), false, false, true));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/crafting_table.png"), texture_2d::init("./res/textures/crafting_table_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/oak_planks.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/oak_log.png"), -1, false, false, true));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/oak_leaves.png"), -1, true, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/cobblestone.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/mossy_cobblestone.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/stone.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/stone_bricks.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/mossy_stone_bricks.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/cracked_stone_bricks.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/glass.png"), texture_2d::init("./res/textures/glass_specular.png"), true, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/sea_lantern.png"), -1, false, true, false, glm::vec3(212.0f, 235.0f, 255.0f) * (1.0f / 255.0f), 1.6f));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/magma.png"), -1, false, true, false, glm::vec3(244.0f, 133.0f, 34.0f) * (1.0f / 255.0f), 1.5f));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/glowstone.png"), -1, false, true, false, glm::vec3(251.0f, 218.0f, 116.0f) * (1.0f / 255.0f), 1.6f));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/crying_obsidian.png"), -1, false, true, false, glm::vec3(131.0f, 8.0f, 228.0f) * (1.0f / 255.0f), 2.0f));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/obsidian.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/tnt.png"), -1, false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/raw_iron.png"), texture_2d::init("./res/textures/blocks/raw_iron_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/iron_block.png"), texture_2d::init("./res/textures/blocks/iron_block_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/raw_gold.png"), texture_2d::init("./res/textures/blocks/raw_gold_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/gold_block.png"), texture_2d::init("./res/textures/blocks/gold_block_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/raw_copper.png"), texture_2d::init("./res/textures/blocks/raw_copper_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/copper_block.png"), texture_2d::init("./res/textures/blocks/copper_block_specular.png"), false, false));
+            hotbar.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/bedrock.png"), -1, false, false));
+            GLuint bedrockTexID = hotbar.back().texture;
             // Second hotbar
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/white.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/orange.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/magenta.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/light_blue.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/yellow.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/lime.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/pink.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/gray.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/light_gray.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/cyan.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/purple.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/blue.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/brown.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/green.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/red.png", parameters));
-            hotbarSecondary.push_back(texture_2d::init("./res/textures/blocks/wool/black.png", parameters));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/white.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/orange.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/magenta.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/light_blue.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/yellow.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/lime.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/pink.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/gray.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/light_gray.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/cyan.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/purple.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/blue.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/brown.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/green.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/red.png"), -1, false, false));
+            hotbarSecondary.push_back(combineBlockData(texture_2d::init("./res/textures/blocks/wool/black.png"), -1, false, false));
 
             // Hand
-            node_t blockHand = scene::createBlock(0, 0, 0, hotbar[0], false, true);
+            node_t blockHand = scene::createBlock(0, 0, 0, hotbar[0].texture, -1, false, true);
             blockHand.translation.z = -1 * SCREEN_DISTANCE;
             blockHand.translation.y -= 0.15;
             blockHand.translation.x += 0.25;
@@ -266,17 +302,17 @@ namespace scene {
             screen.children.push_back(flyingIconNode);
             flyingIconIndex = screen.children.size() - 1;
 
-            node_t hotbarTexture = scene::createFlatSquare(texture_2d::init("./res/textures/hotbar.png", parameters), false);
+            node_t hotbarTexture = scene::createFlatSquare(texture_2d::init("./res/textures/hotbar.png"), false);
             hotbarTexture.translation.z = -2.8 * SCREEN_DISTANCE;
             hotbarTexture.translation.y -= 0.03f;
             hotbarTexture.scale = glm::vec3(0.3, 0.3, 1);
             screen.children.push_back(hotbarTexture);
             hotbarHUDIndex = screen.children.size() - 1;
 
-            // Filling up the hotbar
+            // Filling up the hotbar and positioning it correctly onto the screen
             float xPos = -0.3;
             for (int i = 0; i < 9; i++) {
-                node_t hudHotbar = scene::createBlock(0, 0, 0, hotbar[1], false, false);
+                node_t hudHotbar = scene::createBlock(0, 0, 0, hotbar[1].texture, -1, false, false);
                 hudHotbar.translation.z += 0.55;
                 hudHotbar.translation.y += 0.321;
                 hudHotbar.translation.x = xPos;
@@ -286,6 +322,22 @@ namespace scene {
                 screen.children[hotbarHUDIndex].children.push_back(hudHotbar);
                 hotbarTextureIndex.push_back(screen.children[hotbarHUDIndex].children.size() - 1);
             }
+            
+            // SCENE GRAPHS
+            // Screen node -> Hand object
+            //             -> Flying icon
+            //             -> Hotbar object -> All 9 items
+
+            // Centre of the World -> Skybox
+            //                     -> Sun -> Sun aura
+            //                     -> Moon -> All stars -> Some stars having another layer around it
+
+            // Bed -> Centre Of Player Node -> Head
+            //                              -> Torso
+            //                              -> Left Arm
+            //                              -> Right Arm
+            //                              -> Left leg
+            //                              -> Right leg
 
             // Update the textures of the hotbar
             scrollHotbar(1);
@@ -307,6 +359,9 @@ namespace scene {
                 }
             }
 
+            // Keeping track of where the hand and rotation is
+            oldHandPos = screen.children[handIndex].translation;
+            oldHandRotation = screen.children[handIndex].rotation;
             std::cout << "World Created\n";
         }
 
@@ -315,7 +370,7 @@ namespace scene {
         }
 
         void toggleCutscene() {
-            if (playerCamera.pos.y != groundLevel + EYE_LEVEL && !cutsceneEnabled) {
+            if (playerCamera.pos.y != groundLevel + eyeLevel && !cutsceneEnabled) {
                 return;
             } else if (!check3x3Area(playerCamera.pos) && !cutsceneEnabled) {
                 return;
@@ -327,7 +382,7 @@ namespace scene {
                 oldPitch = playerCamera.pitch;
                 oldYaw = playerCamera.yaw;
                 bed.translation = oldPos;
-                bed.translation.y -= EYE_LEVEL;
+                bed.translation.y -= eyeLevel;
                 desiredYaw = oldYaw - 180.0f;
                 if (desiredYaw < 0.0f) {
                     desiredYaw = 360.0f + desiredYaw;
@@ -345,9 +400,10 @@ namespace scene {
             glm::vec3 tempPos;
             tempPos.x = round(pos.x);
             tempPos.z = round(pos.z);
-            tempPos.y = round(pos.y - EYE_LEVEL);
-            for (size_t i = tempPos.x - 1; i <= tempPos.x + 1; i++) {
-                for (size_t j = tempPos.z - 1; j <= tempPos.z + 1; j++) {
+            tempPos.y = round(pos.y - eyeLevel);
+            for (size_t i = tempPos.x - (size_t)1; i <= tempPos.x + 1; i++) {
+                for (size_t j = tempPos.z - (size_t)1; j <= tempPos.z + 1; j++) {
+                    if (isCoordOutBoundaries(i, tempPos.y, j)) continue;
                     if (!terrain[i][tempPos.y][j].air) {
                         std::cout << "You are surrounded by blocks!\n";
                         return false;
@@ -364,43 +420,53 @@ namespace scene {
         void animateCutscene() {
             auto now = (float) glfwGetTime() - cutsceneTick;
 
-            std::vector<glm::vec3> s1 = {
-                {0,   0.0, 0},
-                {0,   4.0, 0},
-                {4.0 * glm::sin(glm::radians(oldYaw)), 0.0, 4.0 * -glm::cos(glm::radians(oldYaw))},
-                {4.0 * glm::sin(glm::radians(oldYaw)), 4.0, 4.0 * -glm::cos(glm::radians(oldYaw))},
+            // Controls the path of camera
+            std::vector<glm::vec3> controlPointA = {
+                {0.0f,   0.0f, 0.0f},
+                {0.0f,   4.0f, 0.0f},
+                {4.0f * (float)glm::sin(glm::radians(oldYaw)), 0.0f, 4.0f * -glm::cos(glm::radians(oldYaw))},
+                {4.0f * (float)glm::sin(glm::radians(oldYaw)), 4.0f, 4.0f * (float)-glm::cos(glm::radians(oldYaw))},
             };
 
-            std::vector<glm::vec3> s2 = {
-                {0,   0.0, 0},
-                {0.5, 0.0, 0},
-                {0.5, 1.0, 0},
-                {1.0, 1.0, 0},
+            // Ease in, Ease out speed
+            std::vector<glm::vec3> controlPointB = {
+                {0.0f, 0.0f, 0.0f},
+                {0.5f, 0.0f, 0.0f},
+                {0.5f, 1.0f, 0.0f},
+                {1.0f, 1.0f, 0.0f},
             };
 
-            for (size_t i = 0; i < s1.size(); i++) {
-                s1[i] += oldPos;
+            // Moves the controlPointA path to be relative to the current position
+            for (size_t i = 0; i < controlPointA.size(); i++) {
+                controlPointA[i] += oldPos;
             }
 
-            float t = 0.25 * now;
+            float t = 0.25f * (float)now;
             if (t > 1.0f) {
                 t = 1.0f;
             }
-            playerCamera.yaw = oldYaw - (oldYaw - desiredYaw) * utility::cubicBezier(s2, t).y;
-            playerCamera.pitch = oldPitch - (oldPitch + 30.0f) * utility::cubicBezier(s2, t).y;
+            playerCamera.yaw = oldYaw - (oldYaw - desiredYaw) * utility::cubicBezier(controlPointB, t).y;
+            playerCamera.pitch = oldPitch - (oldPitch + 30.0f) * utility::cubicBezier(controlPointB, t).y;
+            playerCamera.pos = oldPos + ((utility::cubicBezier(controlPointA, t) - oldPos) * utility::cubicBezier(controlPointB, t).y);
 
-            playerCamera.pos = oldPos + ((utility::cubicBezier(s1, t) - oldPos) * utility::cubicBezier(s2, t).y);
             return;
         }
 
         void tickStars() {
-            for (size_t i = 0; i < centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children.size(); i++) {
-                centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[i].air = (rand() % 10 == 0);
+            for (size_t i = 0; i < (rand() % 50); i++) {
+                bool status = (rand() % 2 == 0);
+                size_t starIndex = rand() % MAX_STARS;
+
+                node_t *starPointer = &centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[starIndex];
+                starPointer->air = status;
+                if (starPointer->children.size() > 0) {
+                    starPointer->children.front().air = status;
+                }
             }
         }
 
         void switchHotbars() {
-            std::vector<GLuint> tempHotbar = hotbar;
+            std::vector<blockData> tempHotbar = hotbar;
             hotbar.clear();
             for (auto i : hotbarSecondary) {
                 hotbar.push_back(i);
@@ -417,15 +483,14 @@ namespace scene {
         void updateSunPosition(float degree, glm::vec3 skyColor) {
             tickStars();
             centreOfWorldNode.children[skyIndex].translation = playerCamera.pos;
-            centreOfWorldNode.children[skyIndex].translation.y -= EYE_LEVEL;
+            centreOfWorldNode.children[skyIndex].translation.y -= eyeLevel;
             centreOfWorldNode.children[skyIndex].rotation = glm::vec3(0,0,degree);
             centreOfWorldNode.children[skyIndex].children[skySphereIndex].diffuse = skyColor;
-
         }
 
         void bobHand() {
             // Only bob hand if the player is on the ground
-            if (playerCamera.pos.y == (float)groundLevel + EYE_LEVEL) {
+            if (playerCamera.pos.y == (float)groundLevel + eyeLevel) {
                 screen.children[handIndex].translation.y += glm::sin(walkCycle * M_PI / 4) / 150;
                 walkCycle += 1;
                 walkCycle %= 8;
@@ -435,33 +500,28 @@ namespace scene {
         void swingHand() {
             if (swingCycle >= 0) {
 
-                screen.children[handIndex].rotation.x -= 10 * glm::sin(swingCycle * M_PI / 3);
-                screen.children[handIndex].translation.y -= glm::sin(swingCycle * M_PI / 3) / 50;
-                screen.children[handIndex].translation.z -= glm::sin(swingCycle * M_PI / 3) / 30;
                 swingCycle += 1;
-                swingCycle %= 6;
-                if (swingCycle == 0) {
+                std::vector<glm::vec3> controlPoint = {
+                    {0.0f,  0.00f,   0.0f},
+                    {0.0f, -0.15f, -0.1f},
+                    {0.0f,  0.05f, -0.1f},
+                    {0.0f,  0.00f,   0.0f},
+                };
+
+                // Moves the controlPoint path to be relative to the current position
+                for (size_t i = 0; i < controlPoint.size(); i++) {
+                    controlPoint[i] += oldHandPos;
+                }
+
+                float t = (float)swingCycle / 6.0f;
+
+                screen.children[handIndex].rotation.x -= 10 * glm::sin(swingCycle * M_PI / 3);
+                screen.children[handIndex].translation = utility::cubicBezier(controlPoint, t);
+
+                if (swingCycle == 6.0f) {
                     swingCycle = -1;
                 }
             }
-        }
-
-        bool isTransparent(GLuint texID) {
-            for (GLuint i : transparentTextures) {
-                if (i == texID) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool isIlluminating(GLuint texID) {
-            for (GLuint i : illuminatingTextures) {
-                if (i == texID) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         void toggleMode() {
@@ -477,14 +537,14 @@ namespace scene {
             } else if (hotbarIndex < 0) {
                 hotbarIndex = (int)hotbar.size() + hotbarIndex;
             }
-            screen.children[handIndex].texture = hotbar[hotbarIndex];
+            screen.children[handIndex].textureID = hotbar[hotbarIndex].texture;
 
             int tempIndex = hotbarIndex - 4;
             if (tempIndex < 0) {
                 tempIndex = hotbar.size() + tempIndex;
             }
             for (int i : hotbarTextureIndex) {
-                screen.children[hotbarHUDIndex].children[i].texture = hotbar[tempIndex];
+                screen.children[hotbarHUDIndex].children[i].textureID = hotbar[tempIndex].texture;
                 tempIndex++;
                 tempIndex %= hotbar.size();
             }
@@ -520,31 +580,60 @@ namespace scene {
             }
         }
 
-        void rightClickPlace() {
-            if (swingCycle == -1) swingCycle = 0;
-            
+        void rightClickPlace(renderer::renderer_t *renderInfo) {
+            swingCycle = 0;
+            screen.children[handIndex].translation = oldHandPos;
+            screen.children[handIndex].rotation = oldHandRotation;
+
             auto placeBlockVector = findCursorBlock(true);
-            auto placeX = placeBlockVector.x, placeY = placeBlockVector.y, placeZ = placeBlockVector.z;
+            size_t placeX = (size_t)placeBlockVector.x, placeY = (size_t)placeBlockVector.y, placeZ = (size_t)placeBlockVector.z;
             
-            if (isCoordOutBoundaries(placeX, placeY, placeZ)) {
+            if (isCoordOutBoundaries((int)placeX, (int)placeY, (int)placeZ)) {
                 return;
             }
             
             if (terrain[placeX][placeY][placeZ].air) {
-                placeBlock(scene::createBlock(placeX, placeY, placeZ, hotbar[hotbarIndex], false, !isIlluminating(hotbar[hotbarIndex])));
+                placeBlock(scene::createBlock((int)placeX, (int)placeY, (int)placeZ, hotbar[hotbarIndex], false, !hotbar[hotbarIndex].illuminating));
 
-                terrain[placeX][placeY][placeZ].transparent = isTransparent(hotbar[hotbarIndex]);
-                terrain[placeX][placeY][placeZ].illuminating = isIlluminating(hotbar[hotbarIndex]);
-
+                // Adding a light source to the block
+                if (terrain[placeX][placeY][placeZ].illuminating) {
+                    terrain[placeX][placeY][placeZ].lightID = renderInfo->addLightSource(glm::vec3(placeX, placeY, placeZ), hotbar[hotbarIndex].rgb, hotbar[hotbarIndex].intensity);
+                    
+                    if (terrain[placeX][placeY][placeZ].lightID < 0) {
+                        std::cout << "Maximum lights reached, can only have up to " << renderInfo->getMaxLights() << " point lights\n";
+                    }
+                }
+                // If player is inside a block, then destroy the block
                 if (checkInsideBlock()) {
+                    renderInfo->removeLightSource(terrain[placeX][placeY][placeZ].lightID);
                     terrain[placeX][placeY][placeZ].air = true;
                     terrain[placeX][placeY][placeZ].transparent = true;
+                    terrain[placeX][placeY][placeZ].lightID = -1;
+                } else if (hotbar[hotbarIndex].rotatable && abs(playerCamera.pitch) <= 35.0f && !shiftMode) {
+                    // Rotate the block if it is a block that can be rotated
+                    // Blocks will not rotate if shift is being pressed
+                    switch (utility::getDirection(playerCamera.yaw)) {
+                        case 0:
+                            terrain[placeX][placeY][placeZ].rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+                            break;
+                        case 1:
+                            terrain[placeX][placeY][placeZ].rotation = glm::vec3(0.0f, 0.0f, 90.0f);
+                            break;
+                        case 2:
+                            terrain[placeX][placeY][placeZ].rotation = glm::vec3(-90.0f, 0.0f, 0.0f);
+                            break;
+                        case 3:
+                            terrain[placeX][placeY][placeZ].rotation = glm::vec3(0.0f, 0.0f, -90.0f);
+                            break;
+                    }
                 }
             }
         }
 
-        void leftClickDestroy() {
-            if (swingCycle == -1) swingCycle = 0;
+        void leftClickDestroy(renderer::renderer_t *renderInfo) {
+            swingCycle = 0;
+            screen.children[handIndex].translation = oldHandPos;
+            screen.children[handIndex].rotation = oldHandRotation;
             
             auto placeBlockVector = findCursorBlock(false);
             auto placeX = placeBlockVector.x, placeY = placeBlockVector.y, placeZ = placeBlockVector.z;
@@ -556,21 +645,64 @@ namespace scene {
             if (!terrain[placeX][placeY][placeZ].air) {
                 terrain[placeX][placeY][placeZ].air = true;
                 terrain[placeX][placeY][placeZ].transparent = true;
+                terrain[placeX][placeY][placeZ].rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+                if (terrain[placeX][placeY][placeZ].lightID != -1) {
+                    renderInfo->removeLightSource(terrain[placeX][placeY][placeZ].lightID);
+                    terrain[placeX][placeY][placeZ].lightID = -1;
+                }
             }
         }
 
+        void middleClickPick() {
+            auto placeBlockVector = findCursorBlock(false);
+            auto placeX = placeBlockVector.x, placeY = placeBlockVector.y, placeZ = placeBlockVector.z;
+            
+            if (isCoordOutBoundaries(placeX, placeY, placeZ)) {
+                return;
+            }
+            int index = 0;
+            bool found = false;
+            for (auto i : hotbar) {
+                if (i.texture == terrain[placeX][placeY][placeZ].textureID) {
+                    hotbarIndex = index;
+                    found = true;
+                    break;
+                }
+                index += 1;
+            }
+            
+            if (!found) {
+                index = 0;
+                for (auto i : hotbarSecondary) {
+                    if (i.texture == terrain[placeX][placeY][placeZ].textureID) {
+                        switchHotbars();
+                        hotbarIndex = index;
+                        break;
+                    }
+                    index += 1;
+                }
+            }
+            scrollHotbar(1);
+            scrollHotbar(-1);
+        }
+
         void placeBlock(node_t block) {
-            int blockX = block.x, blockY = block.y, blockZ = blockY;
-
-            block.transparent = isTransparent(block.texture);
-            block.illuminating = isIlluminating(block.texture);
-
-            terrain[blockX][block.y][block.z] = block;
+            size_t blockX = block.x, blockY = block.y, blockZ = block.z;
+            scene::destroy(&terrain[blockX][blockY][blockZ], false);
+            block.transparent = hotbar[hotbarIndex].transparent;
+            block.illuminating = hotbar[hotbarIndex].illuminating;
+            
+            terrain[blockX][blockY][blockZ] = block;
             return;
         }
 
         int getSunDistance() {
-            return 2 * RENDER_DISTANCE;
+            if (RENDER_DISTANCE < 15) {
+                return 30;
+            } else {
+                return RENDER_DISTANCE;
+            }
+            
         }
 
         /**
@@ -579,7 +711,10 @@ namespace scene {
          */
         void updatePlayerPositions(GLFWwindow *window, float dt) {
             swingHand();
+
             player::update_cam_angles(playerCamera, window, dt);
+
+            auto originalPosition = playerCamera.pos;
 
             if (flyingMode) {
                 playerCamera.yVelocity = 0;
@@ -587,12 +722,16 @@ namespace scene {
 
             float step = dt * CAMERA_SPEED * walkingMultiplier;
             // Controls running
-            if (playerCamera.yVelocity == 0 && playerCamera.pos.y == (float)groundLevel + EYE_LEVEL) {
-                if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            if (playerCamera.yVelocity == 0 && playerCamera.pos.y == (float)groundLevel + eyeLevel && !shiftMode) {
+                if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
                     walkingMultiplier = 1.0f;
                 } else {
                     walkingMultiplier = 0.5f;
                 }
+            }
+
+            if (shiftMode) {
+                walkingMultiplier = 0.2f;
             }
             
             glm::mat4 trans = glm::translate(glm::mat4(1.0), -playerCamera.pos);
@@ -610,10 +749,6 @@ namespace scene {
                 if (checkInsideBlock()) {
                     playerCamera.pos.x -= step * glm::sin(glm::radians(playerCamera.yaw));
                 }
-                bobHand();
-                if (walkingMultiplier == 1.0f) {
-                    bobHand();
-                }
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
                 playerCamera.pos.z -= step * -glm::cos(glm::radians(playerCamera.yaw));
@@ -623,10 +758,6 @@ namespace scene {
                 playerCamera.pos.x -= step * glm::sin(glm::radians(playerCamera.yaw));
                 if (checkInsideBlock()) {
                     playerCamera.pos.x += step * glm::sin(glm::radians(playerCamera.yaw));
-                }
-                bobHand();
-                if (walkingMultiplier == 1.0f) {
-                    bobHand();
                 }
             }
             if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
@@ -638,10 +769,6 @@ namespace scene {
                 if (checkInsideBlock()) {
                     playerCamera.pos.x -= right.x * -step;
                 }
-                bobHand();
-                if (walkingMultiplier == 1.0f) {
-                    bobHand();
-                }
             }
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 playerCamera.pos.z += right.z * step;
@@ -651,10 +778,6 @@ namespace scene {
                 playerCamera.pos.x += right.x * step;
                 if (checkInsideBlock()) {
                     playerCamera.pos.x -= right.x * step;
-                }
-                bobHand();
-                if (walkingMultiplier == 1.0f) {
-                    bobHand();
                 }
             }
             if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && playerCamera.yVelocity == 0) {
@@ -667,13 +790,27 @@ namespace scene {
                     }
                 }
             }
-            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && playerCamera.pos.y != (float)groundLevel + EYE_LEVEL) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && playerCamera.pos.y != (float)groundLevel + eyeLevel) {
                 if (flyingMode) {
                     playerCamera.pos.y -= step;
-                    if (playerCamera.pos.y < (float)groundLevel + EYE_LEVEL) {
-                        playerCamera.pos.y = groundLevel + EYE_LEVEL;
+                    if (playerCamera.pos.y < (float)groundLevel + eyeLevel) {
+                        playerCamera.pos.y = groundLevel + eyeLevel;
                     }
                 }
+            }
+
+            if (originalPosition.x != playerCamera.pos.x || originalPosition.z != playerCamera.pos.z) {
+                bobHand();
+            }
+
+
+            // Controls sneaking
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && !flyingMode) {
+                eyeLevel = 0.75f;
+                shiftMode = true;
+            } else {
+                eyeLevel = 1.0f;
+                shiftMode = false;
             }
             
             // Enacting gravity onto the camera
@@ -692,7 +829,7 @@ namespace scene {
             }
 
             // World boundaries. Respawns when the y co-ordinate goes too low or too high
-            if (playerCamera.pos.y - EYE_LEVEL < -100 || playerCamera.pos.y > WORLD_HEIGHT - 1) {
+            if (playerCamera.pos.y - eyeLevel < -10 || playerCamera.pos.y > WORLD_HEIGHT - 1) {
                 std::cout << "Respawned, you went too high or too low!\n";
                 flyingMode = false;
                 toggleMode();
@@ -717,8 +854,8 @@ namespace scene {
             if (playerCamera.yVelocity < 0) {
 
                 // Below keeps player steady on ground
-                if (playerCamera.pos.y - EYE_LEVEL < groundLevel) {
-                    playerCamera.pos.y = groundLevel + EYE_LEVEL;
+                if (playerCamera.pos.y - eyeLevel < groundLevel) {
+                    playerCamera.pos.y = groundLevel + eyeLevel;
                     playerCamera.yVelocity = 0;
                 }
             }
@@ -739,7 +876,7 @@ namespace scene {
         }
 
         bool checkInsideBlock() {
-            float playerPosY = playerCamera.pos.y - EYE_LEVEL;
+            float playerPosY = playerCamera.pos.y - eyeLevel;
             float playerPosX = playerCamera.pos.x;
             float playerPosZ = playerCamera.pos.z;
 
@@ -765,7 +902,7 @@ namespace scene {
          
         int findClosestBlockAboveBelow(int direction) {
             
-            float playerPosY = playerCamera.pos.y - EYE_LEVEL;
+            float playerPosY = playerCamera.pos.y - eyeLevel;
             float playerPosX = playerCamera.pos.x;
             float playerPosZ = playerCamera.pos.z;
 
@@ -787,36 +924,36 @@ namespace scene {
                 }
                 
             }
-            return direction * 999999;
+            return direction * WORLD_HEIGHT * WORLD_HEIGHT;
         }
 
         void drawWorld(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
 
-            glUseProgram(renderInfo.program);
             glClearColor(0.f, 0.f, 0.2f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glUniform3fv(renderInfo.sun_direction_loc, 1, glm::value_ptr(renderInfo.sun_light_dir));
-            glUniform3fv(renderInfo.sun_color_loc, 1, glm::value_ptr(renderInfo.sun_light_color));
-            glUniform1f(renderInfo.sun_ambient_loc, renderInfo.sun_light_ambient);
+            renderInfo.setBasePters(playerCamera.pos);
 
             auto view_proj = renderInfo.projection * player::get_view(playerCamera);
 		    glUniformMatrix4fv(renderInfo.view_proj_loc, 1, GL_FALSE, glm::value_ptr(view_proj));
 
-            drawElement(&centreOfWorldNode, glm::mat4(1.0f), renderInfo);
+            drawElement(&centreOfWorldNode, glm::mat4(1.0f), renderInfo, defaultSpecular);
             drawTerrain(glm::mat4(1.0f), renderInfo);
             
-            // Drawing the highlighted block
-            highlightedBlock.translation = findCursorBlock(false);
-            if (!isCoordOutBoundaries(highlightedBlock.translation.x, highlightedBlock.translation.y, highlightedBlock.translation.z)) {
-                drawElement(&highlightedBlock, glm::mat4(1.0f), renderInfo);
+            if (!shiftMode) {
+                // Drawing the highlighted block
+                highlightedBlock.translation = findCursorBlock(false);
+                if (!isCoordOutBoundaries(highlightedBlock.translation.x, highlightedBlock.translation.y, highlightedBlock.translation.z)) {
+                    drawElement(&highlightedBlock, glm::mat4(1.0f), renderInfo, defaultSpecular);
+                }
             }
+            
 
             // Draw bed if cutscene is occuring, otherwise draw HUD
             if (!cutsceneEnabled) {
                 drawScreen(glm::mat4(1.0f), renderInfo);
             } else {
-                drawElement(&bed, glm::mat4(1.0f), renderInfo);
+                drawElement(&bed, glm::mat4(1.0f), renderInfo, defaultSpecular);
             }
         }
 
@@ -836,7 +973,7 @@ namespace scene {
                         if (isCoordOutBoundaries(x, y, z)) {
                             continue;
                         } else if (terrain[x][y][z].air && blockMap[x][y][z] != -1) {
-                            placeBlock(scene::createBlock(x, y, z, blockMap[x][y][z], false, true));
+                            placeBlock(scene::createBlock(x, y, z, blockMap[x][y][z], -1, false, true));
                             blockMap[x][y][z] = -1;
                             continue;
                         } else if (terrain[x][y][z].air) {
@@ -854,10 +991,10 @@ namespace scene {
                                 continue;
                             }
 
-                            getHiddenFaces(x, y, z, faces, true);
+                            if (!terrain[x][y][z].ignoreCulling) getHiddenFaces(x, y, z, faces, true);
 
                             if (utility::countFalses(faces) < 6) {
-                                drawBlock(&terrain[x][y][z], parent_mvp, renderInfo, faces);
+                                drawBlock(&terrain[x][y][z], parent_mvp, renderInfo, faces, defaultSpecular);
                             }
                         }
                     }
@@ -867,9 +1004,9 @@ namespace scene {
             // Draws transparent blocks last
             for (auto i : transparentBlocks) {
                 std::vector<bool> faces(6, true);
-                getHiddenFaces(i.x, i.y, i.z, faces, false);
+                if (!terrain[i.x][i.y][i.z].ignoreCulling) getHiddenFaces(i.x, i.y, i.z, faces, false);
                 if (utility::countFalses(faces) < 6) {
-                    drawBlock(&terrain[i.x][i.y][i.z], parent_mvp, renderInfo, faces);
+                    drawBlock(&terrain[i.x][i.y][i.z], parent_mvp, renderInfo, faces, defaultSpecular);
                 }
             }
 
@@ -903,7 +1040,7 @@ namespace scene {
             screen.rotation.x = playerCamera.pitch;
             screen.rotation.y = -playerCamera.yaw;
 
-            drawElement(&screen, parent_mvp, renderInfo);
+            drawElement(&screen, parent_mvp, renderInfo, defaultSpecular);
         }
     };
 

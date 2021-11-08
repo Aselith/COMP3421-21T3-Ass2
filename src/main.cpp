@@ -22,6 +22,10 @@
 const int WIN_HEIGHT = 1280;
 const int WIN_WIDTH = 720;
 
+struct pointerInformation {
+    scene::world *gameWorld;
+    renderer::renderer_t *renderInfo;
+};
 
 int main() {
 
@@ -35,26 +39,26 @@ int main() {
     glfwSetKeyCallback(window, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
         // Close program if esc is pressed
         if (action != GLFW_PRESS) return;
-        scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
+        pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
         switch(key) {
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(win, GLFW_TRUE);
                 break;
             case GLFW_KEY_E:
-                gameWorld->switchHotbars();
+                info->gameWorld->switchHotbars();
                 break;
             case GLFW_KEY_F:
-                gameWorld->toggleMode();
+                info->gameWorld->toggleMode();
                 break;
             case GLFW_KEY_G:
-                std::cout << "X: " << gameWorld->playerCamera.pos.x << " ";
-                std::cout << "Y: " << gameWorld->playerCamera.pos.y << " ";
-                std::cout << "Z: " << gameWorld->playerCamera.pos.z << "\n";
-                std::cout << "Yaw: " << gameWorld->playerCamera.yaw << "\n";
-                std::cout << "Pitch: " << gameWorld->playerCamera.pitch << "\n";
+                std::cout << "X: " << info->gameWorld->playerCamera.pos.x << " ";
+                std::cout << "Y: " << info->gameWorld->playerCamera.pos.y << " ";
+                std::cout << "Z: " << info->gameWorld->playerCamera.pos.z << "\n";
+                std::cout << "Yaw: " << info->gameWorld->playerCamera.yaw << "\n";
+                std::cout << "Pitch: " << info->gameWorld->playerCamera.pitch << "\n";
                 break;
             case GLFW_KEY_C:
-                gameWorld->toggleCutscene();
+                info->gameWorld->toggleCutscene();
                 break;
         }
     });
@@ -76,25 +80,37 @@ int main() {
     /**
      * Setting up clicks
      */
-    glfwSetWindowUserPointer(window, &gameWorld);
-    glfwSetMouseButtonCallback(window, [](GLFWwindow *win, int button, int action, int mods) {
-        scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
+    pointerInformation info;
+    info.gameWorld = &gameWorld;
+    info.renderInfo = &renderInfo;
+    glfwSetWindowUserPointer(window, &info);
 
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-            gameWorld->leftClickDestroy();
-        } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-            gameWorld->rightClickPlace();
-            
+    glfwSetMouseButtonCallback(window, [](GLFWwindow *win, int button, int action, int mods) {
+
+        if (action != GLFW_PRESS) return;
+
+        pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
+
+        switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                info->gameWorld->leftClickDestroy(info->renderInfo);
+                break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                info->gameWorld->rightClickPlace(info->renderInfo);
+                break;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                info->gameWorld->middleClickPick();
+                break;
         }
     });
 
     glfwSetScrollCallback(window, [](GLFWwindow *win, double xoffset, double yoffset) {
-        scene::world *gameWorld = (scene::world *) glfwGetWindowUserPointer(win);
+        pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
 
         if (yoffset > 0) {
-            gameWorld->scrollHotbar(1);
+            info->gameWorld->scrollHotbar(1);
         } else {
-            gameWorld->scrollHotbar(-1);
+            info->gameWorld->scrollHotbar(-1);
         }
     });
 

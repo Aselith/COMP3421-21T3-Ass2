@@ -2,8 +2,9 @@
 #include <ass2/texture_2d.hpp>
 
 namespace scene {
-    
-    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces) {
+
+    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces, GLuint defaultSpecular) {
+        
         model *= glm::translate(glm::mat4(1.0), node->translation);
         model *= glm::scale(glm::mat4(1.0), node->scale);
         model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
@@ -13,10 +14,20 @@ namespace scene {
         glUniformMatrix4fv(renderInfo.model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
         if (node->mesh.vbo) {
-            texture_2d::bind(node->texture);
-            glUniform1f(renderInfo.mat_tex_factor_loc, node->texture ? 1.0f : 0.0f);
-			glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
-			glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
+            glActiveTexture(GL_TEXTURE0);
+            texture_2d::bind(node->textureID);
+            glActiveTexture(GL_TEXTURE1);
+            if (node->specularID == -1) {
+                texture_2d::bind(defaultSpecular);
+            } else {
+                texture_2d::bind(node->specularID);
+            }
+            glUniform1f(renderInfo.mat_tex_factor_loc, node->textureID ? 1.0f : 0.0f);
+            glUniform1f(renderInfo.mat_specular_factor_loc, node->specularID ? 1.0f : 0.0f);
+            glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
+            glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
+            glUniform4fv(renderInfo.mat_specular_loc, 1, glm::value_ptr(node->specular));
+            glUniform1f(renderInfo.phong_exponent_loc, node->phong_exp);
             glBindVertexArray(node->mesh.vao);
             // Ensures to only render the sides that has an air block with that side
             for (std::vector<int>::size_type index = 0; index < faces.size(); index++) {
@@ -28,9 +39,8 @@ namespace scene {
         }
     }
 
-    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo) {
+    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular) {
 
-        
         model *= glm::translate(glm::mat4(1.0), node->translation);
         model *= glm::scale(glm::mat4(1.0), node->scale);
         model *= glm::rotate(glm::mat4(1.0), glm::radians(node->rotation.z), glm::vec3(0, 0, 1));
@@ -40,10 +50,20 @@ namespace scene {
         glUniformMatrix4fv(renderInfo.model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
         if (node->mesh.vbo && !node->air) {
-            texture_2d::bind(node->texture);
-            glUniform1f(renderInfo.mat_tex_factor_loc, node->texture ? 1.0f : 0.0f);
+            glActiveTexture(GL_TEXTURE0);
+            texture_2d::bind(node->textureID);
+            glActiveTexture(GL_TEXTURE1);
+            if (node->specularID == -1) {
+                texture_2d::bind(defaultSpecular);
+            } else {
+                texture_2d::bind(node->specularID);
+            }
+
+            glUniform1f(renderInfo.mat_tex_factor_loc, node->textureID ? 1.0f : 0.0f);
+            glUniform1f(renderInfo.mat_specular_factor_loc, node->specularID ? 1.0f : 0.0f);
             glUniform4fv(renderInfo.mat_color_loc, 1, glm::value_ptr(node->color));
             glUniform3fv(renderInfo.mat_diffuse_loc, 1, glm::value_ptr(node->diffuse));
+            glUniform1f(renderInfo.phong_exponent_loc, node->phong_exp);
 
             glBindVertexArray(node->mesh.vao);
             glDrawElements(GL_TRIANGLES, node->mesh.indices_count, GL_UNSIGNED_INT, nullptr);
@@ -52,33 +72,67 @@ namespace scene {
         
         // Recursively draw the celestial bodies that are dependent on this celestial body
         for (auto child : node->children) {
-            scene::drawElement(&child, model, renderInfo);
+            scene::drawElement(&child, model, renderInfo, defaultSpecular);
         }
         
         return;
     }
 
 
-    void destroy(const node_t *node) {
+    void destroy(const node_t *node, bool destroyTexture) {
         for (auto child : node->children) {
-            scene::destroy(&child);
+            scene::destroy(&child, destroyTexture);
         }
         static_mesh::destroy(node->mesh);
-        texture_2d::destroy(node->texture);
+        if (destroyTexture) texture_2d::destroy(node->textureID);
     }
-    
+
+    blockData combineBlockData(GLuint texID, GLuint specID, bool transparent, bool illuminating, bool rotatable, glm::vec3 color, float intensity) {
+        blockData data;
+        data.texture = texID;
+        data.specularMap = specID;
+        data.transparent = transparent;
+        data.illuminating = illuminating;
+        data.intensity = intensity;
+        data.rgb = color;
+        data.rotatable = rotatable;
+        return data;
+    }
+
     /*
     Creates a node with a block for it
     */
-    node_t createBlock(int x, int y, int z, GLuint texID, bool invertNormals, bool affectedByLight) {
+    node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool invertNormals, bool affectedByLight) {
 
         node_t block;
         block.air = false;
-        block.mesh = shapes::createCube(x, y, z, invertNormals, affectedByLight);
-        block.texture = texID;
+        block.mesh = shapes::createCube(invertNormals, affectedByLight);
+        block.textureID = texID;
+        block.specularID = specID;
         block.x = x;
         block.y = y;
         block.z = z;
+        block.ignoreCulling = false;
+        block.translation = glm::vec3(x, y, z);
+
+        return block;
+    }
+
+    /**
+     * Overload function of createBlock, this time using blockData
+     */
+    node_t createBlock(int x, int y, int z, blockData data, bool invertNormals, bool affectedByLight) {
+
+        node_t block;
+        block.air = false;
+        block.mesh = shapes::createCube(invertNormals, affectedByLight);
+        block.textureID = data.texture;
+        block.specularID = data.specularMap;
+        block.x = x;
+        block.y = y;
+        block.z = z;
+        block.ignoreCulling = data.rotatable;
+        block.translation = glm::vec3(x, y, z);
 
         return block;
     }
@@ -87,7 +141,7 @@ namespace scene {
 
         node_t sphere;
         sphere.mesh = shapes::createSphere(radius, tesselation);
-        sphere.texture = texID;
+        sphere.textureID = texID;
         sphere.air = false;
 
         return sphere;
@@ -97,7 +151,7 @@ namespace scene {
 
         node_t square;
         square.mesh = shapes::createFlatSquare(invert);
-        square.texture = texID;
+        square.textureID = texID;
         square.air = false;
         return square;
     }
@@ -106,7 +160,7 @@ namespace scene {
 
         node_t bed;
         bed.mesh = shapes::createBed();
-        bed.texture = bedTexID;
+        bed.textureID = bedTexID;
         bed.translation = glm::vec3(WORLD_WIDTH / 2.0f, 4.0f, WORLD_WIDTH / 2.0f);
         bed.air = false;
 
@@ -114,12 +168,12 @@ namespace scene {
 
         node_t playerTorso;
         playerTorso.mesh = shapes::createPlayerTorso();
-        playerTorso.texture = playerTexID;
+        playerTorso.textureID = playerTexID;
         playerTorso.air = false;
 
         node_t playerHead;
         playerHead.mesh = shapes::createPlayerHead();
-        playerHead.texture = playerTexID;
+        playerHead.textureID = playerTexID;
         playerHead.translation.y += 0.0625 * 10;
         playerHead.air = false;
         playerHead.rotation.x += 12.5f;
@@ -127,7 +181,7 @@ namespace scene {
 
         node_t playerLeftArm;
         playerLeftArm.mesh = shapes::createPlayerArmLeft();
-        playerLeftArm.texture = playerTexID;
+        playerLeftArm.textureID = playerTexID;
         playerLeftArm.translation.x += 0.0625 * 6.2;
         playerLeftArm.air = false;
         playerLeftArm.rotation.z += 2.5f;
@@ -135,7 +189,7 @@ namespace scene {
 
         node_t playerLeftLeg;
         playerLeftLeg.mesh = shapes::createPlayerLegLeft();
-        playerLeftLeg.texture = playerTexID;
+        playerLeftLeg.textureID = playerTexID;
         playerLeftLeg.translation.y -= 0.0625 * 12;
         playerLeftLeg.translation.x += 0.0625 * 2;
         playerLeftLeg.air = false;
@@ -143,7 +197,7 @@ namespace scene {
 
         node_t playerRightArm;
         playerRightArm.mesh = shapes::createPlayerArmRight();
-        playerRightArm.texture = playerTexID;
+        playerRightArm.textureID = playerTexID;
         playerRightArm.translation.x -= 0.0625 * 6.2;
         playerRightArm.air = false;
         playerRightArm.rotation.z -= 2.5f;
@@ -151,7 +205,7 @@ namespace scene {
 
         node_t playerRightLeg;
         playerRightLeg.mesh = shapes::createPlayerLegRight();
-        playerRightLeg.texture = playerTexID;
+        playerRightLeg.textureID = playerTexID;
         playerRightLeg.translation.y -= 0.0625 * 12;
         playerRightLeg.translation.x -= 0.0625 * 2;
         playerRightLeg.air = false;

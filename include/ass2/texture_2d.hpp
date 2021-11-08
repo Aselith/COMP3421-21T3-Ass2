@@ -15,7 +15,7 @@ namespace texture_2d {
 
     void bind(GLuint tex);
 
-    GLuint init(std::string file_name, params_t const &params = params_t{});
+    GLuint init(std::string file_name, params_t const &params = params_t{GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_NEAREST});
 
     void destroy(GLuint tex);
 }

@@ -27,50 +27,46 @@ namespace shapes {
         20, 22, 23,
     };
 
-    static_mesh::mesh_t createCube(int x, int y, int z, bool invertNormals, bool affectedByLight) {
+    static_mesh::mesh_t createCube(bool invertNormals, bool affectedByLight) {
         static_mesh::mesh_template_t cube;
-
-        double xDbl = (double)x;
-        double yDbl = (double)y;
-        double zDbl = (double)z;
 
         cube.positions = {
 
             // Bottom Face
-            {xDbl + -0.5, yDbl + -0.5,  zDbl + 0.5},
-            {xDbl + 0.5, yDbl + -0.5,  zDbl + 0.5},
-            {xDbl + 0.5, yDbl + -0.5, zDbl + -0.5},
-            {xDbl + -0.5, yDbl + -0.5, zDbl + -0.5},
+            {-0.5, -0.5,  0.5},
+            {0.5, -0.5,  0.5},
+            {0.5, -0.5, -0.5},
+            {-0.5, -0.5, -0.5},
 
             // Top Face
-            {xDbl + -0.5,  yDbl + 0.5,  zDbl + 0.5},
-            {xDbl +  0.5,  yDbl + 0.5,  zDbl + 0.5},
-            {xDbl +  0.5,  yDbl + 0.5,  zDbl + -0.5},
-            {xDbl + -0.5,  yDbl + 0.5,  zDbl + -0.5},
+            {-0.5,  0.5,  0.5},
+            { 0.5,  0.5,  0.5},
+            { 0.5,  0.5,  -0.5},
+            {-0.5,  0.5,  -0.5},
 
             // Side A
-            {xDbl + -0.5, yDbl + -0.5,  zDbl + 0.5},
-            {xDbl + 0.5, yDbl + -0.5,  zDbl + 0.5},
-            {xDbl + 0.5,  yDbl + 0.5,  zDbl + 0.5},
-            {xDbl + -0.5,  yDbl + 0.5,  zDbl + 0.5},
+            {-0.5, -0.5,  0.5},
+            {0.5, -0.5,  0.5},
+            {0.5,  0.5,  0.5},
+            {-0.5,  0.5,  0.5},
             
             // Back Side A
-            {xDbl +  0.5, yDbl + -0.5, zDbl + -0.5},
-            {xDbl + -0.5, yDbl + -0.5, zDbl + -0.5},
-            {xDbl + -0.5,  yDbl + 0.5, zDbl + -0.5},
-            {xDbl +  0.5,  yDbl + 0.5, zDbl + -0.5},
+            { 0.5, -0.5, -0.5},
+            {-0.5, -0.5, -0.5},
+            {-0.5,  0.5, -0.5},
+            { 0.5,  0.5, -0.5},
 
             // Side A
-            {xDbl + 0.5,  yDbl + -0.5, zDbl +  0.5},
-            {xDbl + 0.5,  yDbl + -0.5,  zDbl + -0.5},
-            {xDbl + 0.5,  yDbl + 0.5,  zDbl + -0.5},
-            {xDbl + 0.5,  yDbl + 0.5, zDbl +  0.5},
+            {0.5,  -0.5,  0.5},
+            {0.5,  -0.5,  -0.5},
+            {0.5,  0.5,  -0.5},
+            {0.5,  0.5,  0.5},
             
             // Back Side A
-            {xDbl + -0.5,  yDbl + -0.5, zDbl + -0.5},
-            {xDbl + -0.5,  yDbl + -0.5,  zDbl + 0.5},
-            {xDbl + -0.5,  yDbl + 0.5,  zDbl + 0.5},
-            {xDbl + -0.5,  yDbl + 0.5, zDbl + -0.5},
+            {-0.5,  -0.5, -0.5},
+            {-0.5,  -0.5,  0.5},
+            {-0.5,  0.5,  0.5},
+            {-0.5,  0.5, -0.5},
         };
 
         double bottomFaceRange = lengthOfSide / lengthOfTexture;
@@ -134,6 +130,7 @@ namespace shapes {
         }
         return static_mesh::init(cube);
     }
+
 
 
     static_mesh::mesh_t createFlatSquare(bool invert) {

@@ -27,9 +27,9 @@ namespace utility {
 
     void calcVertNormals(static_mesh::mesh_template_t& mesh_template);
 
-    void calcTrianglePos(static_mesh::mesh_template_t& mesh_template);
+    void calcFaceNormals(static_mesh::mesh_template_t& mesh_template);
 
-    void invertHalfNormals(static_mesh::mesh_template_t& mesh_template);
+    static_mesh::mesh_template_t expand_indices(const static_mesh::mesh_template_t& mesh_template);
 
     void invertShape(static_mesh::mesh_template_t &meshTemplate);
 
@@ -38,6 +38,10 @@ namespace utility {
     bool isPointInHemisphere(glm::vec3 centre, glm::vec3 tip, glm::vec3 point, int renderDist);
 
     glm::vec3 cubicBezier(const std::vector<glm::vec3> &control_points, float t);
+
+    int obtainSignOfNumber(float number);
+
+    int getDirection(float yaw);
 
 
 }

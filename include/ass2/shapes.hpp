@@ -9,7 +9,7 @@ namespace shapes {
     /**
     * Creates a cube static mesh
     */
-    static_mesh::mesh_t createCube(int x, int y, int z, bool invertNormals, bool affectedByLight);
+    static_mesh::mesh_t createCube(bool invertNormals, bool affectedByLight);
 
     static_mesh::mesh_t createFlatSquare(bool invert);
 

@@ -68,6 +68,7 @@ namespace static_mesh {
         GLuint attrib_index = 1;
         size_t offset = mesh_template.positions.size() * sizeof(glm::vec3);
 
+
         if (!mesh_template.colors.empty()) {
             glEnableVertexAttribArray(attrib_index);
             glVertexAttribPointer(attrib_index, 3, GL_FLOAT, GL_FALSE, 0, (void *) offset);
@@ -88,6 +89,7 @@ namespace static_mesh {
             ++attrib_index;
 			offset += mesh_template.normals.size() * sizeof(glm::vec3);
 		}
+        
 
 
         // unbind the vertex array object so not to accidentally add more info to the vao state
