@@ -1,9 +1,11 @@
 #include <ass2/scene.hpp>
 #include <ass2/texture_2d.hpp>
 
+#include <fstream>
+
 namespace scene {
 
-    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, std::vector<bool> faces, GLuint defaultSpecular) {
+    void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular) {
         
         model *= glm::translate(glm::mat4(1.0), node->translation);
         model *= glm::scale(glm::mat4(1.0), node->scale);
@@ -17,7 +19,7 @@ namespace scene {
             glActiveTexture(GL_TEXTURE0);
             texture_2d::bind(node->textureID);
             glActiveTexture(GL_TEXTURE1);
-            if (node->specularID == -1) {
+            if (node->specularID == 4294967295) {
                 texture_2d::bind(defaultSpecular);
             } else {
                 texture_2d::bind(node->specularID);
@@ -30,8 +32,8 @@ namespace scene {
             glUniform1f(renderInfo.phong_exponent_loc, node->phong_exp);
             glBindVertexArray(node->mesh.vao);
             // Ensures to only render the sides that has an air block with that side
-            for (std::vector<int>::size_type index = 0; index < faces.size(); index++) {
-                if (faces.at(index)) {
+            for (std::vector<int>::size_type index = 0; index < node->culledFaces.size(); index++) {
+                if (node->culledFaces.at(index)) {
                     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(index * 6 * (int)sizeof(GLuint)));
                 }
             }
@@ -87,15 +89,41 @@ namespace scene {
         if (destroyTexture) texture_2d::destroy(node->textureID);
     }
 
-    blockData combineBlockData(GLuint texID, GLuint specID, bool transparent, bool illuminating, bool rotatable, glm::vec3 color, float intensity) {
+    blockData combineBlockData(std::string stringName, bool transparent, bool illuminating, bool rotatable, glm::vec3 color, float intensity) {
         blockData data;
+        GLuint texID;
+        GLuint specID;
+
+        // Checks if the diffuse map exists before initialising it
+        std::string diffuseFilePath = "./res/textures/blocks/wool/" + stringName;
+        std::ifstream fileStreamA(diffuseFilePath + ".png");
+        if (fileStreamA.good())
+            texID = texture_2d::init(diffuseFilePath + ".png");
+        else {
+            diffuseFilePath = "./res/textures/blocks/" + stringName;
+            texID = texture_2d::init(diffuseFilePath + ".png");
+        }
+        fileStreamA.close();
+        
+        // Checks if the specular map exists before initialising it
+        std::string specularFilePath = diffuseFilePath + "_specular.png";
+        std::ifstream fileStreamB(specularFilePath.c_str());
+        if (fileStreamB.good()) {
+            specID = texture_2d::init(specularFilePath.c_str());
+        } else {
+            specID = 4294967295;
+        }
+        fileStreamB.close();
+        
         data.texture = texID;
         data.specularMap = specID;
         data.transparent = transparent;
         data.illuminating = illuminating;
         data.intensity = intensity;
         data.rgb = color;
+        data.blockName = stringName;
         data.rotatable = rotatable;
+
         return data;
     }
 

@@ -77,27 +77,6 @@ namespace utility {
 		}
 	}
 
-
-	static_mesh::mesh_template_t expand_indices(const static_mesh::mesh_template_t& mesh_template) {
-		chicken3421::expect(mesh_template.indices.size() != 0,
-		                    "shapes::expand_indices requires the mesh_template to have indices to "
-		                    "expand");
-		auto new_mesh_template = static_mesh::mesh_template_t{};
-		for (auto i : mesh_template.indices) {
-			new_mesh_template.positions.push_back(mesh_template.positions[i]);
-			if (!mesh_template.colors.empty()) {
-				new_mesh_template.colors.push_back(mesh_template.colors[i]);
-			}
-			if (!mesh_template.tex_coords.empty()) {
-				new_mesh_template.tex_coords.push_back(mesh_template.tex_coords[i]);
-			}
-			if (!mesh_template.normals.empty()) {
-				new_mesh_template.normals.push_back(mesh_template.normals[i]);
-			}
-		}
-		return new_mesh_template;
-	}
-
 	void invertShape(static_mesh::mesh_template_t &meshTemplate) {
 		for (size_t i = 0; i < meshTemplate.indices.size(); i += 3) {
 			int tempVariable = meshTemplate.indices[i + 1];
@@ -116,27 +95,12 @@ namespace utility {
 		return total;
 	}
 
-	bool isPointInHemisphere(glm::vec3 centre, glm::vec3 tip, glm::vec3 point, int renderDist) {
-		if (calculateDistance(centre, point) > renderDist) {
-			return false;
-		}
-		return glm::dot(tip, point - centre) > 0;	
-	}
-
 	glm::vec3 cubicBezier(const std::vector<glm::vec3> &control_points, float t) {
 		glm::vec3 pos = (1 - t) * (1 - t) * (1 - t) * control_points[0]
 						+ 3 * t * (1 - t) * (1 - t) * control_points[1]
 						+ 3 * t * t * (1 - t) * control_points[2]
 						+ t * t * t * control_points[3];
 		return pos;
-	}
-
-	int obtainSignOfNumber(float number) {
-		if (number < 0) {
-			return -1;
-		} else {
-			return 1;
-		}
 	}
 
 	int getDirection(float yaw) {

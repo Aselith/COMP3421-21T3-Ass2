@@ -15,16 +15,6 @@ namespace player {
         return {pos, yaw, pitch, 0};
     }
 
-    glm::mat4 get_view(const playerPOV &cam) {
-        // calculate the rotated coordinate frame
-        glm::mat4 yawed = glm::rotate(glm::mat4(1.0), -glm::radians(cam.yaw), glm::vec3(0, 1, 0));
-        glm::mat4 pitched = glm::rotate(glm::mat4(1.0), glm::radians(cam.pitch), glm::vec3(1, 0, 0));
-        // transpose for inverted transformation
-        glm::mat4 view = glm::transpose(yawed * pitched);
-        view *= glm::translate(glm::mat4(1.0), -cam.pos);
-        return view;
-    }
-
     void update_cam_angles(playerPOV &cam, GLFWwindow *win, float dt) {
         double mx, my;
         glfwGetCursorPos(win, &mx, &my);
@@ -51,12 +41,11 @@ namespace player {
         }
     }
 
-    glm::vec3 getLookingDirection(playerPOV &cam, int increments) {
+    glm::vec3 getLookingDirection(playerPOV *cam, int increments) {
         return glm::vec3 (
-            glm::sin(glm::radians(90 - cam.pitch)) * glm::sin(glm::radians(cam.yaw)) / increments,
-            glm::cos(glm::radians(90 - cam.pitch)) / increments,
-            -glm::sin(glm::radians(90 - cam.pitch)) * glm::cos(glm::radians(cam.yaw)) / increments
+            glm::sin(glm::radians(90 - cam->pitch)) * glm::sin(glm::radians(cam->yaw)) / increments,
+            glm::cos(glm::radians(90 - cam->pitch)) / increments,
+            -glm::sin(glm::radians(90 - cam->pitch)) * glm::cos(glm::radians(cam->yaw)) / increments
         );
-
     }
 }

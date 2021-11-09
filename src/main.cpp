@@ -8,7 +8,6 @@
 
 #include <chicken3421/chicken3421.hpp>
 
-#include <ass2/memes.hpp>
 #include <ass2/player.hpp>
 #include <ass2/shapes.hpp>
 #include <ass2/texture_2d.hpp>
@@ -16,23 +15,51 @@
 #include <ass2/scene.hpp>
 #include <ass2/utility.hpp>
 #include <ass2/renderer.hpp>
+#include <ass2/frustum.hpp>
 
 #include <iostream>
 
 const int WIN_HEIGHT = 1280;
 const int WIN_WIDTH = 720;
 
+// 0 -> Basic flat dirt world
+// 1 -> Wooly world
+// 2 -> Iron world
+const int WORLD_TYPE = 0;
+
 struct pointerInformation {
     scene::world *gameWorld;
     renderer::renderer_t *renderInfo;
+    float frameRate = 0;
 };
 
 int main() {
 
-    chicken3421::enable_debug_output();
-    GLFWwindow *window = marcify(chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "Assignment 2"));
+    GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "Assignment 2 - A Minecraft Clone");
+    chicken3421::image_t faviconImage = chicken3421::load_image("./res/textures/favicon.png", false);
+    GLFWimage favicon = {faviconImage.width, faviconImage.height, (unsigned char *) faviconImage.data};
+    glfwSetWindowIcon(window, 1, &favicon);
+    chicken3421::delete_image(faviconImage);
 
-    scene::world gameWorld;
+    std::vector<scene::miniBlockData> listOfBlocks;
+
+    switch (WORLD_TYPE) {
+        case 1:
+            listOfBlocks.emplace_back(scene::miniBlockData("gray", glm::vec3(0,0,0)));
+            listOfBlocks.emplace_back("white");
+            break;
+        case 2:
+            listOfBlocks.emplace_back("raw_iron");
+            listOfBlocks.emplace_back("iron_block");
+            break;
+        default:
+            listOfBlocks.emplace_back("bedrock");
+            listOfBlocks.emplace_back("dirt");
+            listOfBlocks.emplace_back("grass_block");
+            break;
+    }
+
+    scene::world gameWorld(listOfBlocks);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -60,8 +87,27 @@ int main() {
             case GLFW_KEY_C:
                 info->gameWorld->toggleCutscene();
                 break;
+            case GLFW_KEY_I:
+                info->gameWorld->toggleInstructions();
+                break;
+            case GLFW_KEY_P:
+                std::cout << "Current frame rate: " << info->frameRate << " frames per second\n";
+                break;
+            case GLFW_KEY_TAB:
+                if (!glfwGetWindowAttrib(win, GLFW_MAXIMIZED)) {
+                    glfwMaximizeWindow(win);
+                } else {
+                    glfwRestoreWindow(win);
+                }  
+                break;
         }
     });
+
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* win, int width, int height) {
+
+        glViewport(0, 0, width, height);
+    });
+
 
     // Setting up all the render informations
     renderer::renderer_t renderInfo;
@@ -69,6 +115,7 @@ int main() {
     
 
     gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
+    gameWorld.cutsceneCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -114,26 +161,44 @@ int main() {
         }
     });
 
-
     glm::vec3 sunPosition;
     float degrees = 90;
 
     glUseProgram(renderInfo.program);
+
+    gameWorld.updateBlocksToRender(true);
+    gameWorld.updateBlocksToRender(true);
+
+    float totalTime = 0;
+    float totalFrames = 0;
+
     while (!glfwWindowShouldClose(window)) {
+
         float dt = utility::time_delta();
 
+        totalTime += dt;
+        totalFrames++;
+
+        if (totalTime >= 1) {
+            info.frameRate = totalFrames / totalTime;
+            totalFrames = 0;
+            totalTime = 0;
+        }
+
         if (gameWorld.cutsceneEnabled) {
-            degrees += 2.50f;
+            degrees += 15.0f * dt;
         } else {
-            degrees += 0.02f;
+            degrees += 0.5f * dt;
         }
         
         if (degrees >= 360) {
+            gameWorld.updateMoonPhase();
             degrees -= 360.0f;
         }
-        sunPosition = glm::vec3(gameWorld.playerCamera.pos.x + (gameWorld.getSunDistance() - 10) * glm::cos(glm::radians(degrees)), gameWorld.playerCamera.pos.y + (gameWorld.getSunDistance() - 10) * glm::sin(glm::radians(degrees)), gameWorld.playerCamera.pos.z);
 
-        renderInfo.sun_light_dir = glm::normalize(gameWorld.playerCamera.pos - sunPosition);
+        // Changing and updating where the sun will be
+        sunPosition = glm::vec3(gameWorld.getCurrCamera()->pos.x + (gameWorld.getSunDistance()) * glm::cos(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.y + (gameWorld.getSunDistance() - 10) * glm::sin(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.z);
+        renderInfo.sun_light_dir = glm::normalize(gameWorld.getCurrCamera()->pos - sunPosition);
         renderInfo.changeSunlight(degrees);
 
         if (gameWorld.getCutsceneStatus()) {
@@ -143,7 +208,7 @@ int main() {
         }
 
         gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees));
-        gameWorld.drawWorld(renderInfo.projection * gameWorld.getCurrCamera().get_view(), renderInfo);
+        gameWorld.drawWorld(renderInfo);
         glfwSwapBuffers(window);
         glfwPollEvents();
 
@@ -151,7 +216,7 @@ int main() {
         // it would be more correct if we knew how much time this frame took to render
         // and calculated the distance to the next "ideal" time to render and only slept that long
         // the current way just always sleeps for 16.67ms, so in theory we'd drop frames
-        std::this_thread::sleep_for(std::chrono::duration<float, std::milli>(1000.f / 60));
+        // std::this_thread::sleep_for(std::chrono::duration<float, std::milli>(1000.f / 60));
     }
 
     // deleting the whole window also removes the opengl context, freeing all our memory in one fell swoop.

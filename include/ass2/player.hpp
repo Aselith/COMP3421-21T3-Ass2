@@ -35,13 +35,6 @@ namespace player {
     playerPOV make_camera(glm::vec3 pos, glm::vec3 target);
 
     /**
-     * Get the view matrix of the camera (aka inverse transformation of cam)
-     * @param cam - camera data
-     * @return - view matrix
-     */
-    glm::mat4 get_view(const playerPOV &cam);
-
-    /**
      * Update the camera's position on wasd keys as well as the direction the camera's facing based on cursor movement
      * @param cam - cam info
      * @param window - glfw window
@@ -53,7 +46,7 @@ namespace player {
      * Gets a vector that is in the direction of where the player is facing.
      * Divides the direction by the given increments
      */
-    glm::vec3 getLookingDirection(playerPOV &cam, int increments);
+    glm::vec3 getLookingDirection(playerPOV *cam, int increments);
 
 }
 

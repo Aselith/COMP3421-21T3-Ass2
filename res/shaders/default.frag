@@ -98,24 +98,24 @@ void main() {
         fFragColor = texture(uTex, vTexCoord);
     } else {
         vec4 color = mix(uMat.color, texture(uTex, vTexCoord), uMat.texFactor);
-        vec3 colorV3 = sRGB_to_linear(color.rgb);
+        color.rgb = sRGB_to_linear(color.rgb);
 
         // Calculating specular
         vec4 mat_specular = mix(uMat.specular, texture(uSpec, vTexCoord), uMat.specularFactor);
         vec3 mat_specularV3 = sRGB_to_linear(mat_specular.rgb);
 
-        vec3 ambient = uSun.color * uSun.ambient;
-        vec3 diffuse = uSun.color * uMat.diffuse * max(0, dot(-uSun.direction, vNormal));
+        vec3 ambient = sRGB_to_linear(uSun.color) * pow(uSun.ambient, 2.2);
+        vec3 diffuse = sRGB_to_linear(uSun.color) * sRGB_to_linear(uMat.diffuse) * max(0, dot(-uSun.direction, vNormal));
         vec3 resultSpotLight = {0, 0, 0};
 
         if (uMat.texFactor == 1.0f) {
             for (int i = 0; i < MAX_LIGHTS; i++) {
                 if (allLights[i].position.x >= 0 && allLights[i].position.y >= 0 && allLights[i].position.z >= 0) {
-                    resultSpotLight += sRGB_to_linear(calcSpotLight(allLights[i], colorV3, mat_specularV3));
+                    resultSpotLight += sRGB_to_linear(calcSpotLight(allLights[i], color.rgb, mat_specularV3));
                 }
             }
         }
 
-        fFragColor = vec4((ambient + diffuse + linear_to_sRGB(resultSpotLight)) * linear_to_sRGB(colorV3), color.a);
+        fFragColor = vec4(linear_to_sRGB((ambient + diffuse + resultSpotLight) * color.rgb), color.a);
     }
 }

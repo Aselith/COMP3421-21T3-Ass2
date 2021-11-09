@@ -32,8 +32,8 @@ target_sources(${ACTIVITY}
         ${target}
         PRIVATE
 
+        include/ass2/frustum.hpp
         include/ass2/utility.hpp
-        include/ass2/memes.hpp
         include/ass2/static_mesh.hpp
         include/ass2/scene.hpp
         include/ass2/player.hpp
@@ -42,8 +42,8 @@ target_sources(${ACTIVITY}
         include/ass2/shapes.hpp
         include/ass2/renderer.hpp
 
+        src/frustum.cpp
         src/utility.cpp
-        src/memes.cpp
         src/static_mesh.cpp
         src/scene.cpp
         src/player.cpp
