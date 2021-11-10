@@ -5,6 +5,7 @@
 - Version 1.0 (Released on 19/10/2021): first draft of Assignment 2
 - Version 1.1 (Released on 19/10/2021): revisions based on tutor feedback, ready for public release
 - Version 1.2 (Released on 20/10/2021): fixed due date to Friday Week 09
+- Version 1.3 (5/11/2021): Changed Multiple Lights to allow for only a single Directional Light
 
 ## Introduction
 The purpose of this assignment is to learn about the fundamentals of 3D Graphics and Lighting. It's titled Historical 3D Graphics as these techniques were cutting edge in the late 1990s. The main focus is on two things:
@@ -55,7 +56,7 @@ This project should look very similar to the projects you've been using in your 
 
 3c. (10%) Point Light(s). Your application has the capability to use point lights and this is shown clearly by having a distinct colour point light near multiple objects so that you can see it lighting objects around it. The point light(s) must be able to apply both diffuse and specular lighting to objects and this must be clearly seen in the application.
 
-3d. (5%) Multiple Lights. In 3a-c, you are required to have at least 1 directional light and one point light. This component involves making multiple lights of different types and using them in the scene. Each light should be obviously a different colour/location/direction so it is clear the different effects they're having on the scene. There must be a minimum of 2 of each of directional and point lights to score marks in this section.
+3d. (5%) Multiple Lights. In 3a-c, you are required to have at least 1 directional light and one point light. This component involves making multiple lights of different types and using them in the scene. Each light should be obviously a different colour/location/direction so it is clear the different effects they're having on the scene. There must be a minimum of 2 point lights to score marks in this section.
 
 3e. (10%) Maps. Your application can implement different maps on one object. The most obvious examples would be a specular map that makes only part of an object "shiny" or a normal/bump map that gives a surface visible "roughness".
 
