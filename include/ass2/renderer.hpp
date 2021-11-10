@@ -65,6 +65,7 @@ namespace renderer {
 		GLint phong_exponent_loc;
 		GLint camera_loc;
 		std::vector<lightSource> all_lights_sources;
+		int totalPointLights = 0;
 
 		void initialise(int height, int width) {
 			auto vs = chicken3421::make_shader("res/shaders/default.vert", GL_VERTEX_SHADER);
@@ -165,7 +166,8 @@ namespace renderer {
 		int addLightSource(glm::vec3 pos, glm::vec3 color, float intensity) {
 			for (size_t i = 0; i < all_lights_sources.size(); i++) {
 				if (!all_lights_sources[i].occupied) {
-					std::cout << "Light added\n";
+					totalPointLights++;
+					std::cout << "\u001b[32mLight added.   " << MAX_LIGHTS - totalPointLights << " lights left.\n\033[0m";
 					all_lights_sources[i].occupied = true;
 					all_lights_sources[i].position = pos;
 					all_lights_sources[i].diffuse = color;
@@ -189,7 +191,8 @@ namespace renderer {
 
 		void removeLightSource(int lightID) {
 			if (lightID < 0) return;
-			std::cout << "Light removed\n";
+			totalPointLights--;
+			std::cout << "\u001b[31mLight removed. " << MAX_LIGHTS - totalPointLights << " lights left.\033[0m\n";
 			all_lights_sources[lightID].occupied = false;
 			all_lights_sources[lightID].position = {-1, -1, 1};
 			return;

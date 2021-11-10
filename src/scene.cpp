@@ -130,7 +130,7 @@ namespace scene {
     /*
     Creates a node with a block for it
     */
-    node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool invertNormals, bool affectedByLight) {
+    node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool transparent, bool invertNormals, bool affectedByLight) {
 
         node_t block;
         block.air = false;
@@ -140,6 +140,7 @@ namespace scene {
         block.x = x;
         block.y = y;
         block.z = z;
+        block.transparent = transparent;
         block.ignoreCulling = false;
         block.translation = glm::vec3(x, y, z);
 
@@ -159,6 +160,7 @@ namespace scene {
         block.x = x;
         block.y = y;
         block.z = z;
+        block.transparent = data.transparent;
         block.ignoreCulling = data.rotatable;
         block.translation = glm::vec3(x, y, z);
 

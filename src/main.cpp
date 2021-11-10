@@ -21,19 +21,28 @@
 
 const int WIN_HEIGHT = 1280;
 const int WIN_WIDTH = 720;
+const float W_PRESS_SPACE = 0.15f;
 
 // 0 -> Basic flat dirt world
 // 1 -> Wooly world
 // 2 -> Iron world
-const int WORLD_TYPE = 0;
+// 3 -> Classic Sky Block
 
 struct pointerInformation {
     scene::world *gameWorld;
     renderer::renderer_t *renderInfo;
-    float frameRate = 0;
+    float frameRate = 0, lastWPressed = 0;
 };
 
 int main() {
+
+    // Printing welcome
+    int worldType = 0;
+    std::cout << "\n\u001B[34mWelcome to a clone of Minecraft, created by z5309206 for COMP3421 ASS2 21T3 UNSW!\n\n\u001B[0m";
+    std::cout << "Presets:\n0 -> Basic super flat world\n1 -> Wooly world\n2 -> Iron World\n3 -> Classic Sky Block\n";
+    std::cout << "Enter your desired preset world [If not recognised, Basic super flat world is used]: ";
+    std::cin >> worldType;
+    std::cout << "\n";
 
     GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "Assignment 2 - A Minecraft Clone");
     chicken3421::image_t faviconImage = chicken3421::load_image("./res/textures/favicon.png", false);
@@ -43,19 +52,140 @@ int main() {
 
     std::vector<scene::miniBlockData> listOfBlocks;
 
-    switch (WORLD_TYPE) {
+    std::vector<glm::vec2> listOfPositions;
+    switch (worldType) {
         case 1:
-            listOfBlocks.emplace_back(scene::miniBlockData("gray", glm::vec3(0,0,0)));
-            listOfBlocks.emplace_back("white");
+            std::cout << "Wooly world selected\n";
+            listOfBlocks.emplace_back(scene::miniBlockData("gray", glm::vec3(0,0,0), false, true));
+            listOfBlocks.emplace_back(scene::miniBlockData("white", glm::vec3(0,1,0), false, true));
             break;
         case 2:
-            listOfBlocks.emplace_back("raw_iron");
-            listOfBlocks.emplace_back("iron_block");
+            std::cout << "Iron world selected\n";
+            listOfBlocks.emplace_back(scene::miniBlockData("raw_iron", glm::vec3(0,0,0), false, true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(0,1,0), false, true));
             break;
+        case 3:
+            std::cout << "Classic Sky Block selected\n";
+            listOfBlocks.emplace_back(scene::miniBlockData("barrel", glm::vec3(0,3,0), true));
+            // Generating land
+            listOfPositions = {
+                {-1, 0},
+                { 0, 0},
+                { 1, 0},
+                {-1, 1},
+                { 0, 1},
+                { 1, 1},
+                {-1, 2},
+                { 0, 2},
+                { 1, 2},
+                {-1, 3},
+                { 0, 3},
+                { 1, 3},
+                {-1, 4},
+                { 0, 4},
+                { 1, 4},
+                {-1, 5},
+                { 0, 5},
+                { 1, 5},
+                { 1, 5},
+                { 2, 3},
+                { 2, 4},
+                { 2, 5},
+                { 3, 3},
+                { 3, 4},
+                { 3, 5},
+                { 4, 3},
+                { 4, 4},
+                { 4, 5},
+            };
+            for (auto i : listOfPositions) {
+                listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(i.x,0,i.y), true));
+                listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(i.x,1,i.y), true));
+                if (i.x == 4 && i.y == 5) {
+                    listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(i.x,2,i.y), true));
+
+                    // Creating the tree
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,3,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,4,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,5,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,6,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,7,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_log", glm::vec3(i.x,8,i.y), true));
+                    // Creating the leaves
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,9,i.y), true)); // +
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,9,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,9,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,9,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,9,i.y + 1), true));
+
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,8,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,8,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,8,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,8,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,8,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,8,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,8,i.y + 1), true));
+
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,7,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,7,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,7,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,7,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,7,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,7,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,7,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,7,i.y - 1), true));
+
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,7,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,7,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,7,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,7,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,7,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,7,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,7,i.y + 2), true));
+                    //
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,7,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,7,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,7,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,7,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,7,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,7,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,7,i.y - 2), true));
+
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,6,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,6,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,6,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,6,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,6,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,6,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,6,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,6,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,6,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,6,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,6,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 2,6,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,6,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,6,i.y + 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,6,i.y + 2), true));
+                    //
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,6,i.y), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,6,i.y + 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,6,i.y - 1), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 2,6,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x - 1,6,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x,6,i.y - 2), true));
+                    listOfBlocks.emplace_back(scene::miniBlockData("oak_leaves", glm::vec3(i.x + 1,6,i.y - 2), true));
+                } else {
+                    listOfBlocks.emplace_back(scene::miniBlockData("grass_block", glm::vec3(i.x,2,i.y), true));
+                }
+            }
+            break;
+            
         default:
-            listOfBlocks.emplace_back("bedrock");
-            listOfBlocks.emplace_back("dirt");
-            listOfBlocks.emplace_back("grass_block");
+            std::cout << "Basic super flat world selected\n";
+            listOfBlocks.emplace_back(scene::miniBlockData("bedrock", glm::vec3(0,0,0), false, true));
+            listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(0,1,0), false, true));
+            listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(0,2,0), false, true));
+            listOfBlocks.emplace_back(scene::miniBlockData("grass_block", glm::vec3(0,3,0), false, true));
             break;
     }
 
@@ -67,7 +197,16 @@ int main() {
         // Close program if esc is pressed
         if (action != GLFW_PRESS) return;
         pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
+        if (key != GLFW_KEY_I) info->gameWorld->toggleInstructions(true);
         switch(key) {
+            case GLFW_KEY_W:
+                // Double tap to run
+                if (glfwGetTime() - info->lastWPressed <= W_PRESS_SPACE) {
+                    info->gameWorld->runningMode = true;
+                } else {
+                    info->lastWPressed = glfwGetTime();
+                }
+                break;
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(win, GLFW_TRUE);
                 break;
@@ -88,7 +227,7 @@ int main() {
                 info->gameWorld->toggleCutscene();
                 break;
             case GLFW_KEY_I:
-                info->gameWorld->toggleInstructions();
+                info->gameWorld->toggleInstructions(!(info->gameWorld->getInstructionStatus()));
                 break;
             case GLFW_KEY_P:
                 std::cout << "Current frame rate: " << info->frameRate << " frames per second\n";
@@ -167,10 +306,12 @@ int main() {
     glUseProgram(renderInfo.program);
 
     gameWorld.updateBlocksToRender(true);
-    gameWorld.updateBlocksToRender(true);
 
     float totalTime = 0;
     float totalFrames = 0;
+
+    glfwShowWindow(window);
+    glfwFocusWindow(window);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -186,7 +327,7 @@ int main() {
         }
 
         if (gameWorld.cutsceneEnabled) {
-            degrees += 15.0f * dt;
+            degrees += 20.0f * dt;
         } else {
             degrees += 0.5f * dt;
         }
@@ -218,7 +359,8 @@ int main() {
         // the current way just always sleeps for 16.67ms, so in theory we'd drop frames
         // std::this_thread::sleep_for(std::chrono::duration<float, std::milli>(1000.f / 60));
     }
-
+    
+    std::cout << "Terminating program, please standby\n";
     // deleting the whole window also removes the opengl context, freeing all our memory in one fell swoop.
     chicken3421::delete_opengl_window(window);
 

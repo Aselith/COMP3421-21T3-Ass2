@@ -4,8 +4,8 @@
 #include <ass2/player.hpp>
 
 namespace player {
-    const float CAMERA_SPEED = 5.0;
-    const float MOUSE_SENSITIVITY = 10.0;
+
+    const float MOUSE_SENSITIVITY = 20.0;
 
     playerPOV make_camera(glm::vec3 pos, glm::vec3 target) {
         glm::vec3 front = glm::normalize(target - pos);
