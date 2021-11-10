@@ -136,7 +136,7 @@ namespace scene {
             std::cout << "Generating world, please standby...\n";
             GLuint flyingIcon = texture_2d::init("./res/textures/flying_mode.png");
 
-            bed = createBedPlayer(texture_2d::init("./res/textures/bed.png"), texture_2d::init("./res/textures/player.png"));
+            bed = createBedPlayer(texture_2d::init("./res/textures/blocks/bed.png"), texture_2d::init("./res/textures/player.png"));
 
             // Setting up moon phases
             moonPhases.push_back(texture_2d::init("./res/textures/blocks/moon/moon_0.png"));

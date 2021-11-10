@@ -44,7 +44,7 @@ int main() {
     std::cin >> worldType;
     std::cout << "\n";
 
-    GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "Assignment 2 - A Minecraft Clone");
+    GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "COMP3421 21T3 Assignment 2 [Minecraft: Clone Simulator]");
     chicken3421::image_t faviconImage = chicken3421::load_image("./res/textures/favicon.png", false);
     GLFWimage favicon = {faviconImage.width, faviconImage.height, (unsigned char *) faviconImage.data};
     glfwSetWindowIcon(window, 1, &favicon);
