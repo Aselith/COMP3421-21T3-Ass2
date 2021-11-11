@@ -32,9 +32,13 @@ namespace scene {
             glUniform1f(renderInfo.phong_exponent_loc, node->phong_exp);
             glBindVertexArray(node->mesh.vao);
             // Ensures to only render the sides that has an air block with that side
-            for (std::vector<int>::size_type index = 0; index < node->culledFaces.size(); index++) {
-                if (node->culledFaces.at(index)) {
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(index * 6 * (int)sizeof(GLuint)));
+            if (node->ignoreCulling) {
+                glDrawElements(GL_TRIANGLES, node->mesh.indices_count, GL_UNSIGNED_INT, nullptr);
+            } else {
+                for (std::vector<int>::size_type index = 0; index < node->culledFaces.size(); index++) {
+                    if (node->culledFaces.at(index)) {
+                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(index * 6 * (int)sizeof(GLuint)));
+                    }
                 }
             }
             glBindVertexArray(0);
@@ -191,7 +195,7 @@ namespace scene {
         node_t bed;
         bed.mesh = shapes::createBed();
         bed.textureID = bedTexID;
-        bed.translation = glm::vec3(WORLD_WIDTH / 2.0f, 4.0f, WORLD_WIDTH / 2.0f);
+        bed.translation = glm::vec3(0.0f, 4.0f, 0.0f);
         bed.air = false;
 
         node_t player;

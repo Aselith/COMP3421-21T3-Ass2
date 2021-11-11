@@ -37,13 +37,18 @@ struct pointerInformation {
 int main() {
 
     // Printing welcome
-    int worldType = 0, renderDistance = 0;
+    int worldType = 0, renderDistance = 0, worldWidth = 0;
     std::cout << "\n\u001B[34mWelcome to a clone of Minecraft, created by z5309206 for COMP3421 ASS2 21T3 UNSW!\n\n\u001B[0m";
     std::cout << "Presets:\n0 -> Basic Super Flat World\n1 -> Wooly World\n2 -> Iron World\n3 -> Classic Sky Block\n";
-    std::cout << "Enter your desired preset world [If not recognised, Basic super flat world is used]: ";
+    std::cout << "Enter your desired preset world [If not recognised, Basic Super Flat World is used]: ";
     std::cin >> worldType;
     std::cout << "\n";
-    std::cout << "Enter your desired render distance [Minimum 15. Recommended 30]: ";
+    std::cout << "Enter your the world's width [Minimum 50]: ";
+    std::cin >> worldWidth;
+    if (worldWidth < 50) {
+        worldWidth = 50;
+    }
+    std::cout << "Enter your desired render distance [Minimum 15 | Recommended 30]: ";
     std::cin >> renderDistance;
     if (renderDistance < 15) {
         renderDistance = 15;
@@ -58,14 +63,15 @@ int main() {
     std::vector<scene::miniBlockData> listOfBlocks;
 
     std::vector<glm::vec2> listOfPositions;
+    std::cout << "\n";
     switch (worldType) {
         case 1:
-            std::cout << "Wooly world selected\n";
+            std::cout << "Wooly World selected\n";
             listOfBlocks.emplace_back(scene::miniBlockData("gray", glm::vec3(0,0,0), false, true));
             listOfBlocks.emplace_back(scene::miniBlockData("white", glm::vec3(0,1,0), false, true));
             break;
         case 2:
-            std::cout << "Iron world selected\n";
+            std::cout << "Iron World selected\n";
             listOfBlocks.emplace_back(scene::miniBlockData("raw_iron", glm::vec3(0,0,0), false, true));
             listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(0,1,0), false, true));
             break;
@@ -186,7 +192,7 @@ int main() {
             break;
             
         default:
-            std::cout << "Basic super flat world selected\n";
+            std::cout << "Basic Super Flat World selected\n";
             listOfBlocks.emplace_back(scene::miniBlockData("bedrock", glm::vec3(0,0,0), false, true));
             listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(0,1,0), false, true));
             listOfBlocks.emplace_back(scene::miniBlockData("dirt", glm::vec3(0,2,0), false, true));
@@ -194,7 +200,7 @@ int main() {
             break;
     }
 
-    scene::world gameWorld(listOfBlocks, renderDistance);
+    scene::world gameWorld(listOfBlocks, renderDistance, worldWidth);
 
 
     // SETTING UP ALL CALLBACKS
@@ -204,7 +210,7 @@ int main() {
         // Close program if esc is pressed
         if (action != GLFW_PRESS) return;
         pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
-        if (key != GLFW_KEY_I) info->gameWorld->toggleInstructions(true);
+        if (key != GLFW_KEY_I && key != GLFW_KEY_TAB) info->gameWorld->toggleInstructions(true);
         switch(key) {
             case GLFW_KEY_W:
                 // Double tap to run
@@ -224,22 +230,20 @@ int main() {
                 info->gameWorld->toggleMode();
                 break;
             case GLFW_KEY_G:
-                std::cout << "Directly beneath: " << info->gameWorld->groundLevel << "\n";
-                std::cout << "Directly above  : " << info->gameWorld->aboveLevel << "\n";
+                // Printing debug information
                 std::cout << "X: " << info->gameWorld->playerCamera.pos.x << " ";
                 std::cout << "Y: " << info->gameWorld->playerCamera.pos.y << " ";
                 std::cout << "Z: " << info->gameWorld->playerCamera.pos.z << "\n";
                 std::cout << "Yaw: " << info->gameWorld->playerCamera.yaw << "\n";
-                std::cout << "Pitch: " << info->gameWorld->playerCamera.pitch << "\n\n";
+                std::cout << "Pitch: " << info->gameWorld->playerCamera.pitch << "\n";
+                std::cout << "Player Vertical Velocity: " << info->gameWorld->playerCamera.yVelocity << "\n";
+                std::cout << "Current frame rate: " << info->frameRate << " frames per second\n\n";
                 break;
             case GLFW_KEY_C:
                 info->gameWorld->toggleCutscene();
                 break;
             case GLFW_KEY_I:
                 info->gameWorld->toggleInstructions(!(info->gameWorld->getInstructionStatus()));
-                break;
-            case GLFW_KEY_P:
-                std::cout << "Current frame rate: " << info->frameRate << " frames per second\n";
                 break;
             case GLFW_KEY_TAB:
                 if (!glfwGetWindowAttrib(win, GLFW_MAXIMIZED)) {
@@ -355,7 +359,7 @@ int main() {
             gameWorld.updatePlayerPositions(window, dt, &renderInfo);
         }
 
-        gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees));
+        gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees), dt);
         gameWorld.drawWorld(renderInfo);
         glfwSwapBuffers(window);
         glfwPollEvents();

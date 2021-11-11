@@ -20,13 +20,9 @@
 #include <iostream>
 
 namespace scene {
-    const size_t WORLD_WIDTH = 110;
-    const size_t WORLD_HEIGHT = 50;
-
-    const size_t MAX_STARS = 200;
 
     const float GRAVITY = -19.6f;
-    const float JUMP_POWER = 5.5f;
+    const float JUMP_POWER = 6.0f;
     const float CAMERA_SPEED = 5.0f;
     const float PLAYER_RADIUS = 0.25f; // 0.25
     const float SCREEN_DISTANCE = 0.25f;
@@ -99,6 +95,10 @@ namespace scene {
 
     struct world {
 
+        size_t worldWidth = 110;
+        const size_t WORLD_HEIGHT = 50;
+        const size_t MAX_STARS = 200;
+        
         float eyeLevel = 1.0f;
         bool shiftMode = false;
         float walkingMultiplier = 0.5f;
@@ -114,7 +114,7 @@ namespace scene {
         std::vector<GLuint> moonPhases;
         int moonPhase = 0;
 
-        std::vector<std::vector<std::vector<node_t>>> terrain = {WORLD_WIDTH , std::vector< std::vector<node_t> > (WORLD_HEIGHT, std::vector<node_t> (WORLD_WIDTH) ) };
+        std::vector<std::vector<std::vector<node_t>>> terrain;
         std::vector<node_t *> listOfBlocksToRender;
 
         node_t screen;
@@ -132,11 +132,14 @@ namespace scene {
         int handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0, instructionIndex = 0;
         bool flyingMode = false, startSwingHandAnim = false, runningMode = false;
 
-        world(std::vector<miniBlockData> listOfBlocks, int inputRenderDistance) {
-            renderDistance = inputRenderDistance;
-            std::cout << "Generating world, please standby...\n";
-            GLuint flyingIcon = texture_2d::init("./res/textures/flying_mode.png");
+        world(std::vector<miniBlockData> listOfBlocks, int inputRenderDistance, int inputWidth) {
 
+            renderDistance = inputRenderDistance;
+            worldWidth = (size_t)inputWidth;
+            terrain = {worldWidth , std::vector< std::vector<node_t> > (WORLD_HEIGHT, std::vector<node_t> (worldWidth) ) };
+            
+            std::cout << "Generating world of size " << worldWidth << "x" << worldWidth << " with render distance " << renderDistance << ". Please standby...\n";
+            GLuint flyingIcon = texture_2d::init("./res/textures/flying_mode.png");
             bed = createBedPlayer(texture_2d::init("./res/textures/blocks/bed.png"), texture_2d::init("./res/textures/player.png"));
 
             // Setting up moon phases
@@ -296,7 +299,7 @@ namespace scene {
 
             node_t flyingIconNode = scene::createFlatSquare(flyingIcon, false);
             flyingIconNode.translation.z = -2.8 * SCREEN_DISTANCE;
-            flyingIconNode.translation.y += 0.089f;
+            flyingIconNode.translation.y += 0.096f;
             flyingIconNode.translation.x -= 0.17f;
             flyingIconNode.scale = glm::vec3(0.03, 0.03, 1);
             flyingIconNode.air = true;
@@ -304,31 +307,31 @@ namespace scene {
             flyingIconIndex = screen.children.size() - 1;
 
             node_t hotbarTexture = scene::createFlatSquare(texture_2d::init("./res/textures/hotbar.png"), false);
-            hotbarTexture.translation.z = -2.8 * SCREEN_DISTANCE;
-            hotbarTexture.translation.y -= 0.03f;
-            hotbarTexture.scale = glm::vec3(0.3, 0.3, 1);
+            hotbarTexture.translation.z = -2.7 * SCREEN_DISTANCE;
+            hotbarTexture.translation.y -= 0.015f;
+            hotbarTexture.scale = glm::vec3(0.25, 0.25, 1);
             screen.children.push_back(hotbarTexture);
             hotbarHUDIndex = screen.children.size() - 1;
 
             // Filling up the hotbar and positioning it correctly onto the screen
-            float xPos = -0.3f;
+            float xPos = -0.285f;
             for (int i = 0; i < 9; i++) {
-                node_t hudHotbar = scene::createBlock(0, 0, 0, hotbar[1].texture, -1, false, false, false);
-                hudHotbar.translation.z += 0.55f;
-                hudHotbar.translation.y += 0.321f;
-                hudHotbar.translation.x = xPos;
-                xPos += 0.075f;
-                hudHotbar.rotation = glm::vec3(45, 31, 30);
-                hudHotbar.scale = glm::vec3(0.035, 0.035, 0.0001);
-                screen.children[(size_t)hotbarHUDIndex].children.push_back(hudHotbar);
+                node_t hudHotbarBlock = scene::createBlock(0, 0, 0, hotbar[1].texture, -1, false, false, false);
+                hudHotbarBlock.translation.z += 0.55f;
+                hudHotbarBlock.translation.y += 0.3f;
+                hudHotbarBlock.translation.x = xPos;
+                xPos += 0.0715f;
+                hudHotbarBlock.rotation = glm::vec3(45, 35, 30);
+                hudHotbarBlock.scale = glm::vec3(0.035, 0.035, 0.00001);
+                screen.children[(size_t)hotbarHUDIndex].children.push_back(hudHotbarBlock);
                 hotbarTextureIndex.push_back(screen.children[(size_t)hotbarHUDIndex].children.size() - 1);
             }
 
             node_t instructions = scene::createFlatSquare(texture_2d::init("./res/textures/instructions.png"), false);
-            instructions.translation.z = -2.78f * SCREEN_DISTANCE;
+            instructions.translation.z = -2.699f * SCREEN_DISTANCE;
             instructions.translation.x -= 0.11f;
-            instructions.translation.y -= 0.019f;
-            instructions.scale = glm::vec3(0.18, 0.18, 1);
+            instructions.translation.y -= 0.03f;
+            instructions.scale = glm::vec3(0.13, 0.13, 1);
             screen.children.push_back(instructions);
             instructionIndex = screen.children.size() - 1;
             
@@ -377,7 +380,7 @@ namespace scene {
             // Keeping track of where the hand and rotation is
             oldHandPos = screen.children[handIndex].translation;
             oldHandRotation = screen.children[handIndex].rotation;
-            std::cout << "World Created\n";
+            std::cout << "World Created\n\n";
         }
 
         player::playerPOV *getCurrCamera() {
@@ -460,7 +463,6 @@ namespace scene {
         void animateCutscene() {
             // Calculating delta time
             auto now = (float) glfwGetTime() - cutsceneTick;
-            updateBlocksToRender();
 
             auto desiredYaw = playerCamera.yaw - 180.0f;
             if (desiredYaw < 0.0f) {
@@ -493,6 +495,8 @@ namespace scene {
             float t = 0.25f * (float)now;
             if (t > 1.0f) {
                 t = 1.0f;
+            } else {
+                updateBlocksToRender();
             }
             getCurrCamera()->yaw = playerCamera.yaw - (playerCamera.yaw - desiredYaw) * utility::cubicBezier(controlPointB, t).y;
             getCurrCamera()->pitch = playerCamera.pitch - (playerCamera.pitch + 30.0f) * utility::cubicBezier(controlPointB, t).y;
@@ -501,18 +505,16 @@ namespace scene {
             return;
         }
 
-        void tickStars() {
-            for (size_t i = 0; i < (rand() % 50); i++) {
-                bool status = (rand() % 2 == 0);
-                size_t starIndex = rand() % MAX_STARS;
-                if (starIndex == 0) continue;
-                // Index 0 is the moon. Skip it
-
-                node_t *starPointer = &centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[starIndex];
+        void tickStars(float dt) {
+            // Index 0 is the moon. Skip it
+            for (size_t i = 1; i < MAX_STARS; i++) {
+                node_t *starPointer = &centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[i];
+                bool status = (rand() % 20 == 0);
                 starPointer->air = status;
                 if (starPointer->children.size() > 0) {
                     starPointer->children.front().air = status;
                 }
+                starPointer->rotation.x += 10.0f * dt;
             }
         }
 
@@ -531,8 +533,8 @@ namespace scene {
             scrollHotbar(1);
         }
 
-        void updateSunPosition(float degree, glm::vec3 skyColor) {
-            tickStars();
+        void updateSunPosition(float degree, glm::vec3 skyColor, float dt) {
+            tickStars(dt);
             centreOfWorldNode.children[skyIndex].translation = playerCamera.pos;
             centreOfWorldNode.children[skyIndex].translation.y -= eyeLevel + 6.5f;
             centreOfWorldNode.children[skyIndex].rotation = glm::vec3(0, 0, degree);
@@ -540,6 +542,7 @@ namespace scene {
         }
 
         void bobHand(float dt) {
+            // Controls how fast to bobhand
             if (shiftMode) {
                 dt /= 4.0f;
             } else if (runningMode) {
@@ -621,6 +624,7 @@ namespace scene {
                 hotbarIndex = (int)hotbar.size() + hotbarIndex;
             }
             screen.children[handIndex].textureID = hotbar[hotbarIndex].texture;
+            screen.children[handIndex].specularID = hotbar[hotbarIndex].specularMap;
 
             int tempIndex = hotbarIndex - 4;
             if (tempIndex < 0) {
@@ -811,9 +815,14 @@ namespace scene {
         void findRespawnPosition(renderer::renderer_t *renderInfo) {
             playerCamera.pos = {round(terrain.size() / 2), 6.0f, round(terrain.at(0).at(0).size() / 2)};
             while (checkInsideBlock()) {
-                std::cout << "Some blocks were destroyed to make room for you to respawn in.\n";
+                std::cout << "Some blocks were destroyed to make room for you to respawn in\n";
                 leftClickDestroy(renderInfo, playerCamera.pos);
                 leftClickDestroy(renderInfo, {round(terrain.size() / 2), 5.0f, round(terrain.at(0).at(0).size() / 2)});
+            }
+            if (findClosestBlockAboveBelow(-1) < 0) {
+                std::cout << "No blocks below detected. Force flying mode enabled\n";
+                flyingMode = false;
+                toggleMode();
             }
 
         }
@@ -830,14 +839,13 @@ namespace scene {
             auto originalPosition = playerCamera.pos;
 
             if (flyingMode) {
-                playerCamera.yVelocity = 0;
+                playerCamera.yVelocity = 0.0f;
             }
 
             float step = dt * CAMERA_SPEED * walkingMultiplier;
             // Controls running
-
             if (runningMode) {
-                walkingMultiplier = 1.0f;
+                walkingMultiplier = 1.2f;
             } else {
                 walkingMultiplier = 0.5f;
             }
@@ -847,6 +855,7 @@ namespace scene {
             }
 
             if (findClosestBlockAboveBelow(-1) == playerCamera.pos.y - eyeLevel) {
+                // Prevent accidentally shifting off a block
                 playerCamera.yVelocity = 0.0f;
             }
             
@@ -859,41 +868,41 @@ namespace scene {
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
                 playerCamera.pos.z += step * -glm::cos(glm::radians(playerCamera.yaw));
                 // Step backwards if player is sneaking and teetering off block, or they are inside a block
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.z -= step * -glm::cos(glm::radians(playerCamera.yaw));
                 }
                 playerCamera.pos.x += step * glm::sin(glm::radians(playerCamera.yaw));
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.x -= step * glm::sin(glm::radians(playerCamera.yaw));
                 }
             }
             if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
                 playerCamera.pos.z -= step * -glm::cos(glm::radians(playerCamera.yaw));
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.z += step * -glm::cos(glm::radians(playerCamera.yaw));
                 }
                 playerCamera.pos.x -= step * glm::sin(glm::radians(playerCamera.yaw));
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.x += step * glm::sin(glm::radians(playerCamera.yaw));
                 }
             }
             if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
                 playerCamera.pos.z += right.z * -step;
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.z -= right.z * -step;
                 }
                 playerCamera.pos.x += right.x * -step;
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.x -= right.x * -step;
                 }
             }
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 playerCamera.pos.z += right.z * step;
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.z -= right.z * step;
                 }
                 playerCamera.pos.x += right.x * step;
-                if (checkInsideBlock() || (shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
+                if (checkInsideBlock() || (playerCamera.yVelocity == 0.0f && shiftMode && findClosestBlockAboveBelow(-1) < playerCamera.pos.y - eyeLevel)) {
                     playerCamera.pos.x -= right.x * step;
                 }
             }
@@ -917,7 +926,7 @@ namespace scene {
             }
 
             // If the positions differ, then bob the hand
-            if (originalPosition.x != playerCamera.pos.x || originalPosition.z != playerCamera.pos.z) {
+            if (originalPosition.x != playerCamera.pos.x || originalPosition.z != playerCamera.pos.z || originalPosition.y != playerCamera.pos.y) {
                 bobHand(dt);
                 updateBlocksToRender();
             }
@@ -946,22 +955,17 @@ namespace scene {
                 }
 
                 if (playerCamera.pos.y < groundLevel + eyeLevel) {
+                    // Prevents player from falling through the ground
                     playerCamera.pos.y = groundLevel + eyeLevel;
-                    playerCamera.yVelocity = 0;
+                    playerCamera.yVelocity = 0.0f;
                 }
             }
 
             // World boundaries. Respawns when the y co-ordinate goes too low or too high
             // || playerCamera.pos.y > WORLD_HEIGHT - 1
             if (playerCamera.pos.y - eyeLevel < -1 * (int)WORLD_HEIGHT) {
-                if (playerCamera.pos.y - eyeLevel < -1 * (int)WORLD_HEIGHT) {
-                    std::cout << "Respawned, you went too low!\n";
-                } else {
-                    std::cout << "Respawned, you went too high!\n";
-                }
-                
-                // flyingMode = false;
-                // toggleMode();
+                std::cout << "Respawned, you went too low!\n";
+
                 findRespawnPosition(renderInfo);
                 groundLevel = findClosestBlockAboveBelow(-1);
 
@@ -976,14 +980,12 @@ namespace scene {
             groundLevel = findClosestBlockAboveBelow(-1);
             aboveLevel = findClosestBlockAboveBelow(1);
 
-            if (playerCamera.yVelocity < 0) {
-
-                // Below keeps player steady on ground
-                if (playerCamera.pos.y - eyeLevel < groundLevel) {
-                    playerCamera.pos.y = groundLevel + eyeLevel;
-                    playerCamera.yVelocity = 0;
-                }
-            } else if (playerCamera.yVelocity >= 0) {
+            // Below keeps player steady on ground
+            if (playerCamera.pos.y - eyeLevel < groundLevel) {
+                playerCamera.pos.y = groundLevel + eyeLevel;
+                playerCamera.yVelocity = 0;
+            }
+            if (playerCamera.yVelocity >= 0) {
                 // Below keeps player under the ceiling
                 if (playerCamera.pos.y + 1.0f >= aboveLevel) {
                     if (flyingMode) {
@@ -1036,9 +1038,11 @@ namespace scene {
             float playerPosX = playerCamera.pos.x;
             float playerPosZ = playerCamera.pos.z;
 
-            for (int i = 0; abs(i) < 100; i += direction) {
+            int maxInt = (direction < 0) ? 1 : WORLD_HEIGHT;
+
+            for (int i = (int)playerPosY; i * direction < maxInt; i += direction) {
                 int xPosRd = (int)round(playerPosX);
-                int yPosRd = (int)round(playerPosY) + i;
+                int yPosRd = (int)round(i);
                 int zPosRd = (int)round(playerPosZ);
 
                 // Checks around the player in a circle if they are touching a block or not
@@ -1112,12 +1116,14 @@ namespace scene {
 
         void updateBlocksToRender(bool forceRender = false) {
 
-            if (!forceRender && utility::calculateDistance(getCurrCamera()->pos, lastRenderedPos) <= 2.0f) return;
+            // Don't bother to render if the last rendered position is less than (renderDistance / 10) blocks away
+            // unless force render is true
+            if (!forceRender && utility::calculateDistance(getCurrCamera()->pos, lastRenderedPos) <= (float)(renderDistance / 10.0f)) return;
 
             listOfBlocksToRender.clear();
 
             std::vector<glm::vec3> transparentBlocks;
-            int width = WORLD_WIDTH, height = WORLD_HEIGHT;
+            int width = worldWidth, height = WORLD_HEIGHT;
             auto minY = (int)std::max(0, (int)(getCurrCamera()->pos.y - renderDistance));
             auto maxY = (int)std::min((int)(getCurrCamera()->pos.y + renderDistance), height);
             auto minX = (int)std::max(0, (int)(getCurrCamera()->pos.x - renderDistance));
@@ -1147,7 +1153,7 @@ namespace scene {
                         // Only render side if it has air next to it
                         terrain.at(x).at(y).at(z).culledFaces = {true, true, true, true, true, true};
 
-                        if (!terrain.at(x).at(y).at(z).ignoreCulling) getHiddenFaces(x, y, z, terrain.at(x).at(y).at(z).culledFaces, true);
+                        getHiddenFaces(x, y, z, terrain.at(x).at(y).at(z).culledFaces, true);
 
                         if (utility::countFalses(terrain.at(x).at(y).at(z).culledFaces) < 6) {
                             listOfBlocksToRender.push_back(&terrain.at(x).at(y).at(z));
@@ -1162,14 +1168,14 @@ namespace scene {
                 
                 terrain.at(i.x).at(i.y).at(i.z).culledFaces = {true, true, true, true, true, true};
 
-                if (!terrain.at(i.x).at(i.y).at(i.z).ignoreCulling) getHiddenFaces(i.x, i.y, i.z, terrain.at(i.x).at(i.y).at(i.z).culledFaces, false);
+                getHiddenFaces(i.x, i.y, i.z, terrain.at(i.x).at(i.y).at(i.z).culledFaces, false);
 
                 if (utility::countFalses(terrain.at(i.x).at(i.y).at(i.z).culledFaces) < 6) {
                     listOfBlocksToRender.push_back(&terrain.at(i.x).at(i.y).at(i.z));
                 }
             }
 
-            lastRenderedPos = playerCamera.pos;
+            lastRenderedPos = getCurrCamera()->pos;
 
         }
 
