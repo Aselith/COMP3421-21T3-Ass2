@@ -67,6 +67,12 @@ namespace renderer {
 		std::vector<lightSource> all_lights_sources;
 		int totalPointLights = 0;
 
+		/**
+		 * @brief Creates the program with the given height and width and initialises all the different shader locations
+		 * 
+		 * @param height 
+		 * @param width 
+		 */
 		void initialise(int height, int width) {
 			auto vs = chicken3421::make_shader("res/shaders/default.vert", GL_VERTEX_SHADER);
 			auto fs = chicken3421::make_shader("res/shaders/default.frag", GL_FRAGMENT_SHADER);
@@ -111,6 +117,11 @@ namespace renderer {
 			}
 		}
 
+		/**
+		 * @brief Changes the sunlight color based on the given degree.
+		 * 
+		 * @param degree 
+		 */
 		void changeSunlight(float degree) {
 
 			if (degree >= 0.0f && degree < 90.0f) {
@@ -129,10 +140,22 @@ namespace renderer {
 			}
 		}
 
+		/**
+		 * @brief Gets the max lights allowed by this program
+		 * @warning must match with the MAX_LIGHTS in the shader frag
+		 * 
+		 * @return int 
+		 */
 		int getMaxLights() {
 			return MAX_LIGHTS;
 		}
 
+		/**
+		 * @brief Gets the sky color depending on the given degree
+		 * 
+		 * @param degree 
+		 * @return glm::vec3 
+		 */
 		glm::vec3 getSkyColor(float degree) {
 
 			if (degree >= 0.0f && degree < 90.0f) {
@@ -146,6 +169,11 @@ namespace renderer {
 			}
 		}
 
+		/**
+		 * @brief Sets the base shader pointers
+		 * 
+		 * @param pos 
+		 */
 		void setBasePters(glm::vec3 pos) {
 			glUniform3fv(sun_direction_loc, 1, glm::value_ptr(sun_light_dir));
             glUniform3fv(sun_color_loc, 1, glm::value_ptr(sun_light_color));
@@ -158,11 +186,20 @@ namespace renderer {
 				glUniform3fv(light.position_loc, 1, glm::value_ptr(light.position));
 				glUniform1f(light.intensity_loc, light.intensity);
 			}
+
+			// Pointing to the different textures
 			glUniform1i(uTex_loc, 0);
 			glUniform1i(uSpec_loc, 1);
 		}
 
-
+		/**
+		 * @brief Add a light source with the given parameters and returns the light ID used to create this light
+		 * 
+		 * @param pos 
+		 * @param color 
+		 * @param intensity 
+		 * @return int 
+		 */
 		int addLightSource(glm::vec3 pos, glm::vec3 color, float intensity) {
 			for (size_t i = 0; i < all_lights_sources.size(); i++) {
 				if (!all_lights_sources[i].occupied) {
@@ -189,6 +226,11 @@ namespace renderer {
 			return -1;
 		}
 
+		/**
+		 * @brief Remove the light source with the given ID
+		 * 
+		 * @param lightID 
+		 */
 		void removeLightSource(int lightID) {
 			if (lightID < 0) return;
 			totalPointLights--;
@@ -196,6 +238,10 @@ namespace renderer {
 			all_lights_sources[lightID].occupied = false;
 			all_lights_sources[lightID].position = {-1, -1, 1};
 			return;
+		}
+
+		void deleteProgram() {
+			chicken3421::delete_program(program);
 		}
 	};
 

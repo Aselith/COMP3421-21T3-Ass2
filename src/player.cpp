@@ -7,7 +7,7 @@ namespace player {
 
     const float MOUSE_SENSITIVITY = 20.0;
 
-    playerPOV make_camera(glm::vec3 pos, glm::vec3 target) {
+    playerPOV createCamera(glm::vec3 pos, glm::vec3 target) {
         glm::vec3 front = glm::normalize(target - pos);
         // calculate the yaw and pitch from the front vector
         float yaw = glm::degrees(std::atan2(front.x, -front.z));
@@ -15,7 +15,7 @@ namespace player {
         return {pos, yaw, pitch, 0};
     }
 
-    void update_cam_angles(playerPOV &cam, GLFWwindow *win, float dt) {
+    void updateCameraAngle(playerPOV &cam, GLFWwindow *win, float dt) {
         double mx, my;
         glfwGetCursorPos(win, &mx, &my);
         static glm::vec2 mouse_prev = {mx, my};

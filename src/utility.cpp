@@ -60,23 +60,6 @@ namespace utility {
 		// std::cout << "\n";
 	}
 
-	void calcFaceNormals(static_mesh::mesh_template_t& mesh_template) {
-		chicken3421::expect(mesh_template.indices.size() == 0,
-		                    "shapes::calc_face_normals requires the mesh_template to not use "
-		                    "indices");
-		mesh_template.normals =
-		   std::vector<glm::vec3>(mesh_template.positions.size(), glm::vec3(1, 0, 0));
-		const auto& pos = mesh_template.positions;
-		for (auto i = size_t{0}; i < mesh_template.positions.size() - 2; i += 3) {
-			auto a = pos[i + 1] - pos[i];
-			auto b = pos[i + 2] - pos[i];
-			auto face_normal = glm::normalize(glm::cross(a, b));
-			for (auto j = size_t{0}; j < 3; ++j) {
-				mesh_template.normals[i + j] = face_normal;
-			}
-		}
-	}
-
 	void invertShape(static_mesh::mesh_template_t &meshTemplate) {
 		for (size_t i = 0; i < meshTemplate.indices.size(); i += 3) {
 			int tempVariable = meshTemplate.indices[i + 1];

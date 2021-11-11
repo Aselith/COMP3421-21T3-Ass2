@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace static_mesh {
+    // The code used here is a modified version of static_mesh found from the tutorials.
+
     // mesh_t contains only the essential data required to draw the mesh as well as to destroy it
     struct mesh_t {
         GLuint vao = 0;
@@ -39,7 +41,6 @@ namespace static_mesh {
      */
     mesh_t init(mesh_template_t const &mesh_template);
 
-    void draw(const mesh_t &mesh, GLenum draw_mode);
 }
 
 #endif

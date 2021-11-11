@@ -46,10 +46,6 @@ namespace texture_2d {
         return tex;
     }
 
-    void bind(GLuint tex) {
-        glBindTexture(GL_TEXTURE_2D, tex);
-    }
-
     void destroy(GLuint tex) {
         glDeleteTextures(1, &tex);
     }

@@ -13,10 +13,20 @@ namespace texture_2d {
         GLint filter_max = GL_LINEAR; // filtering mode if texture pixels > screen pixels
     };
 
-    void bind(GLuint tex);
+    /**
+     * @brief Creates a map with the given filename and returns the handler for the newly created texture
+     * 
+     * @param fileName 
+     * @param params 
+     * @return GLuint 
+     */
+    GLuint init(std::string fileName, params_t const &params = params_t{GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_NEAREST});
 
-    GLuint init(std::string file_name, params_t const &params = params_t{GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_NEAREST});
-
+    /**
+     * @brief Destroys the given texture
+     * 
+     * @param tex 
+     */
     void destroy(GLuint tex);
 }
 

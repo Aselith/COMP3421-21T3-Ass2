@@ -17,12 +17,12 @@ namespace scene {
 
         if (node->mesh.vbo) {
             glActiveTexture(GL_TEXTURE0);
-            texture_2d::bind(node->textureID);
+            glBindTexture(GL_TEXTURE_2D, node->textureID);
             glActiveTexture(GL_TEXTURE1);
             if (node->specularID == 4294967295) {
-                texture_2d::bind(defaultSpecular);
+                glBindTexture(GL_TEXTURE_2D, defaultSpecular);
             } else {
-                texture_2d::bind(node->specularID);
+                glBindTexture(GL_TEXTURE_2D, node->specularID);
             }
             glUniform1f(renderInfo.mat_tex_factor_loc, node->textureID ? 1.0f : 0.0f);
             glUniform1f(renderInfo.mat_specular_factor_loc, node->specularID ? 1.0f : 0.0f);
@@ -57,12 +57,12 @@ namespace scene {
 
         if (node->mesh.vbo && !node->air) {
             glActiveTexture(GL_TEXTURE0);
-            texture_2d::bind(node->textureID);
+            glBindTexture(GL_TEXTURE_2D, node->textureID);
             glActiveTexture(GL_TEXTURE1);
             if (node->specularID == -1) {
-                texture_2d::bind(defaultSpecular);
+                glBindTexture(GL_TEXTURE_2D, defaultSpecular);
             } else {
-                texture_2d::bind(node->specularID);
+                glBindTexture(GL_TEXTURE_2D, node->specularID);
             }
 
             glUniform1f(renderInfo.mat_tex_factor_loc, node->textureID ? 1.0f : 0.0f);
@@ -84,13 +84,15 @@ namespace scene {
         return;
     }
 
-
     void destroy(const node_t *node, bool destroyTexture) {
         for (auto child : node->children) {
             scene::destroy(&child, destroyTexture);
         }
         static_mesh::destroy(node->mesh);
-        if (destroyTexture) texture_2d::destroy(node->textureID);
+        if (destroyTexture) {
+            texture_2d::destroy(node->textureID);
+            texture_2d::destroy(node->specularID);
+        }
     }
 
     blockData combineBlockData(std::string stringName, bool transparent, bool illuminating, bool rotatable, glm::vec3 color, float intensity) {
@@ -131,12 +133,10 @@ namespace scene {
         return data;
     }
 
-    /*
-    Creates a node with a block for it
-    */
     node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool transparent, bool invertNormals, bool affectedByLight) {
 
         node_t block;
+        block.name = "N/A";
         block.air = false;
         block.mesh = shapes::createCube(invertNormals, affectedByLight);
         block.textureID = texID;
@@ -151,12 +151,10 @@ namespace scene {
         return block;
     }
 
-    /**
-     * Overload function of createBlock, this time using blockData
-     */
     node_t createBlock(int x, int y, int z, blockData data, bool invertNormals, bool affectedByLight) {
 
         node_t block;
+        block.name = data.blockName;
         block.air = false;
         block.mesh = shapes::createCube(invertNormals, affectedByLight);
         block.textureID = data.texture;

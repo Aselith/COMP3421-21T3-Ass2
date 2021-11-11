@@ -24,7 +24,7 @@ namespace scene {
     const float GRAVITY         = -19.6f;
     const float JUMP_POWER      = 6.0f;
     const float CAMERA_SPEED    = 5.0f;
-    const float PLAYER_RADIUS   = 0.25f; // 0.25
+    const float PLAYER_RADIUS   = 0.26f; // 0.25
     const float SCREEN_DISTANCE = 0.25f;
 
     struct node_t {
@@ -44,6 +44,7 @@ namespace scene {
         glm::vec3 scale = glm::vec3(1.0);
         std::vector<node_t> children;
         std::vector<bool> culledFaces = {true, true, true, true, true, true};
+        std::string name;
 
         int x = 0, y = 0, z = 0;
         int lightID = -1;
@@ -51,6 +52,7 @@ namespace scene {
     };
 
     struct blockData {
+        std::string blockName;
         GLuint texture = 0;
         GLuint specularMap = 0;
         glm::vec3 rgb = {0, 0, 0};
@@ -58,7 +60,6 @@ namespace scene {
         bool illuminating = false;
         bool rotatable = false;
         float intensity = 1.0f;
-        std::string blockName;
     };
 
     struct miniBlockData {
@@ -94,17 +95,82 @@ namespace scene {
      * @param defaultSpecular 
      */
     void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular);
+
     /**
-     * Takes in the parameters and returns blockData with all the information given stored inside
+     * @brief Takes in the parameters and returns blockData with all the information given stored inside
+     * 
+     * @param stringName 
+     * @param transparent 
+     * @param illuminating 
+     * @param rotatable 
+     * @param color 
+     * @param intensity 
+     * @return blockData 
      */
     blockData combineBlockData(std::string stringName, bool transparent, bool illuminating, bool rotatable = false, glm::vec3 color = {0, 0, 0}, float intensity = 1.0f);
 
-
+    /**
+     * @brief Create a Block object with the given texID and specIDs
+     * 
+     * @param x 
+     * @param y 
+     * @param z 
+     * @param texID 
+     * @param specID 
+     * @param transparent 
+     * @param invertNormals 
+     * @param affectedByLight 
+     * @return node_t 
+     */
     node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool transparent, bool invertNormals, bool affectedByLight);
+    
+    /**
+     * @brief Create a Block object with the given blockData
+     * 
+     * @param x 
+     * @param y 
+     * @param z 
+     * @param data 
+     * @param invertNormals 
+     * @param affectedByLight 
+     * @return node_t 
+     */
     node_t createBlock(int x, int y, int z, blockData data, bool invertNormals, bool affectedByLight);
+
+    /**
+     * @brief Create a Sky Sphere object that has the radius and tesselation of the given values
+     * 
+     * @param texID 
+     * @param radius 
+     * @param tesselation 
+     * @return node_t 
+     */
     node_t createSkySphere(GLuint texID, float radius, int tesselation);
+
+    /**
+     * @brief Create a Flat Square object that is one dimensional
+     * 
+     * @param texID 
+     * @param invert 
+     * @return node_t 
+     */
     node_t createFlatSquare(GLuint texID, bool invert);
+
+    /**
+     * @brief Create a Bed Player object. This node_t will have the right children to construct a Minecraft Player Model
+     * 
+     * @param bedTexID 
+     * @param playerTexID 
+     * @return node_t 
+     */
     node_t createBedPlayer(GLuint bedTexID, GLuint playerTexID);
+
+    /**
+     * @brief Destroys the node. destroyTexture = true to delete the texture as well.
+     * 
+     * @param node 
+     * @param destroyTexture 
+     */
     void destroy(const node_t *node, bool destroyTexture);
 
     // WORLD = Everything that shows up on the screen is controlled from here
@@ -148,7 +214,14 @@ namespace scene {
         size_t handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0, instructionIndex = 0;
         bool flyingMode = false, startSwingHandAnim = false, runningMode = false;
 
-        world(std::vector<miniBlockData> listOfBlocks, int inputRenderDistance, int inputWidth) {
+        /**
+         * @brief Creates a world with the given render distance and the world width
+         * 
+         * @param listOfBlocks 
+         * @param inputRenderDistance 
+         * @param inputWidth 
+         */
+        world(std::vector<miniBlockData> listOfBlocks, int inputRenderDistance, int inputWidth, renderer::renderer_t *renderInfo) {
 
             renderDistance = inputRenderDistance;
             worldWidth = (size_t)inputWidth;
@@ -383,6 +456,9 @@ namespace scene {
                     for (int x = 0; x < (int)terrain.size(); x++) {
                         for (int z = 0; z < (int)terrain.at(0).at(0).size(); z++) {
                             placeBlock(scene::createBlock(x, (int)listOfBlocks[i].position.y, z, generatingBlock, false, !generatingBlock.illuminating));
+                            if (generatingBlock.illuminating) {
+                                terrain.at(x).at(listOfBlocks[i].position.y).at(z).lightID = renderInfo->addLightSource(listOfBlocks[i].position, generatingBlock.rgb, generatingBlock.intensity);
+                            }
                         }
                     }
                 } else {
@@ -390,6 +466,9 @@ namespace scene {
                         listOfBlocks[i].position += glm::vec3((float)terrain.size() / 2.0f, 0.0f, (float)terrain.at(0).at(0).size() / 2.0f);
                     }
                     placeBlock(scene::createBlock((int)listOfBlocks[i].position.x, (int)listOfBlocks[i].position.y, (int)listOfBlocks[i].position.z, generatingBlock, false, !generatingBlock.illuminating));
+                    if (generatingBlock.illuminating) {
+                        terrain.at(listOfBlocks[i].position.x).at(listOfBlocks[i].position.y).at(listOfBlocks[i].position.z).lightID = renderInfo->addLightSource(listOfBlocks[i].position, generatingBlock.rgb, generatingBlock.intensity);
+                    }
                 }
                 terrain.at((size_t)listOfBlocks[i].position.x).at((size_t)listOfBlocks[i].position.y).at((size_t)listOfBlocks[i].position.z).transparent = generatingBlock.transparent;
             }
@@ -400,6 +479,11 @@ namespace scene {
             std::cout << "World Created\n\n";
         }
 
+        /**
+         * @brief Get the current camera being used to render the scene
+         * 
+         * @return player::playerPOV* 
+         */
         player::playerPOV *getCurrCamera() {
             if (cutsceneEnabled) {
                 return &cutsceneCamera;
@@ -407,6 +491,13 @@ namespace scene {
             return &playerCamera;
         }
 
+        /**
+         * @brief Based on the blockName, find the correct blockData that represents the desired block
+         * Will return the first blockData if the name is not valid
+         * 
+         * @param blockName 
+         * @return blockData 
+         */
         blockData findDataBlockName(std::string blockName) {
             for (size_t i = 0; i < hotbar.size(); i++) {
                 if (hotbar[i].blockName == blockName) {
@@ -422,21 +513,40 @@ namespace scene {
             return hotbar.front();
         }
 
+        /**
+         * @brief Turns the display of the instructions on or off
+         * 
+         * @param status 
+         */
         void toggleInstructions(bool status) {
             screen.children[(size_t)instructionIndex].air = status;
             return;
         }
 
+        /**
+         * @brief Get the bool which governs if the instructions are to appear or not
+         * 
+         * @return true if the instructions are showing
+         * @return false if the instructions are not showing
+         */
         bool getInstructionStatus() {
             return screen.children[(size_t)instructionIndex].air;
         }
 
+        /**
+         * @brief Use this to change the moon phase to the next
+         * 
+         */
         void updateMoonPhase() {
             moonPhase++;
             moonPhase %= moonPhases.size();
             centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[0].textureID = moonPhases[moonPhase];
         }
 
+        /**
+         * @brief Use this to enable the sleeping cutscene
+         * 
+         */
         void toggleCutscene() {
             if (playerCamera.pos.y != groundLevel + eyeLevel && !cutsceneEnabled) {
                 return;
@@ -456,6 +566,13 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Checks if there are any blocks around the player
+         * 
+         * @param pos 
+         * @return true if there aren't any blocks in the given 3 by 3
+         * @return false if there are blocks in the given 3 by 3
+         */
         bool check3x3Area(glm::vec3 pos) {
             glm::vec3 tempPos;
             tempPos.x = round(pos.x);
@@ -473,10 +590,20 @@ namespace scene {
             return true;
         }
 
+        /**
+         * @brief Get information on whether the sleeping cutscene is playing or not
+         * 
+         * @return true if cutscene is playing
+         * @return false if the cutscene is not playing
+         */
         bool getCutsceneStatus() {
             return cutsceneEnabled;
         }
 
+        /**
+         * @brief Advances the cutscene forward in the bezier curve
+         * 
+         */
         void animateCutscene() {
             // Calculating delta time
             auto now = (float) glfwGetTime() - cutsceneTick;
@@ -522,6 +649,11 @@ namespace scene {
             return;
         }
 
+        /**
+         * @brief Rotates the stars based on the given delta time. Also flicker a random star with each call
+         * 
+         * @param dt 
+         */
         void tickStars(float dt) {
             // Index 0 is the moon. Skip it
             for (size_t i = 1; i < MAX_STARS; i++) {
@@ -535,6 +667,10 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Switches between the main hotbar and the secondary hotbar with the wool blocks
+         * 
+         */
         void switchHotbars() {
             std::vector<blockData> tempHotbar = hotbar;
             hotbar.clear();
@@ -550,6 +686,14 @@ namespace scene {
             scrollHotbar(1);
         }
 
+        /**
+         * @brief Updates the sun and moon position based on the given degree.
+         * Also changes the diffuse of the sky sphere.
+         * 
+         * @param degree 
+         * @param skyColor 
+         * @param dt 
+         */
         void updateSunPosition(float degree, glm::vec3 skyColor, float dt) {
             tickStars(dt);
             centreOfWorldNode.children[skyIndex].translation = playerCamera.pos;
@@ -558,15 +702,21 @@ namespace scene {
             centreOfWorldNode.children[skyIndex].children[skySphereIndex].diffuse = skyColor;
         }
 
+        /**
+         * @brief Advances the bobbing hand animation based on the given delta time
+         * 
+         * @param dt 
+         */
         void bobHand(float dt) {
-            // Controls how fast to bobhand
-            if (shiftMode) {
-                dt /= 4.0f;
-            } else if (runningMode) {
-                dt *= 1.5f;
-            }
+
             // Only bob hand if the player is on the ground
             if (playerCamera.pos.y == (float)groundLevel + eyeLevel && swingCycle == -1.0f) {
+                // Controls how fast to bobhand
+                if (shiftMode) {
+                    dt /= 4.0f;
+                } else if (runningMode) {
+                    dt *= 1.5f;
+                }
                 walkCycle += dt * 2.0f;
                 walkCycle = fmod(walkCycle, 1.0f);
                 std::vector<glm::vec3> controlPoint = {
@@ -587,6 +737,12 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Advances the swinging hand animation whenever the player presses left or right click
+         * based on the given delta time
+         * 
+         * @param dt 
+         */
         void swingHand(float dt) {
             if (swingCycle >= 0.0f) {
 
@@ -627,11 +783,20 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Toggles between flying or walking mode
+         * 
+         */
         void toggleMode() {
             flyingMode = !flyingMode;
             screen.children[flyingIconIndex].air = !flyingMode;
         }
 
+        /**
+         * @brief Scrolls hotbar in the direction given. Negative to scroll down, positive to scroll up
+         * 
+         * @param direction 
+         */
         void scrollHotbar(int direction) {
             hotbarIndex += direction;
 
@@ -654,8 +819,18 @@ namespace scene {
             }
         }
     
+        /**
+         * @brief Finds the block that the player is looking at within a certain limit.
+         * giveBlockBefore to return the location of the nieghbouring block which is closest
+         * to where the player was looking
+         * 
+         * @param giveBlockBefore 
+         * @return glm::vec3 
+         */
         glm::vec3 findCursorBlock(bool giveBlockBefore) {
+            // Don't bother if the cutscene is playing
             if (cutsceneEnabled) return glm::vec3(-1, -1, -1); 
+
             glm::vec3 lookingDirection = player::getLookingDirection(&playerCamera, increments);
             float rayX = playerCamera.pos.x, rayY = playerCamera.pos.y, rayZ = playerCamera.pos.z;
 
@@ -682,23 +857,24 @@ namespace scene {
             }
         }
 
-        void rightClickPlace(renderer::renderer_t *renderInfo, glm::vec3 forcedPlace = {-10, -10, -10}) {
+        /**
+         * @brief Call this to place the hotbar block in the players looking direction.
+         * This function call also deals with rotating blocks and creating light sources
+         * 
+         * @param renderInfo 
+         * @param forcedPlace 
+         */
+        void rightClickPlace(renderer::renderer_t *renderInfo) {
             swingCycle = 0;
             screen.children[handIndex].translation = oldHandPos;
             screen.children[handIndex].rotation = oldHandRotation;
 
             size_t placeX, placeY, placeZ;
 
-            if (forcedPlace.x != -10) {
-                placeX = (size_t)forcedPlace.x;
-                placeY = (size_t)forcedPlace.y;
-                placeZ = (size_t)forcedPlace.z;
-            } else {
-                auto placeBlockVector = findCursorBlock(true);
-                placeX = (size_t)placeBlockVector.x;
-                placeY = (size_t)placeBlockVector.y;
-                placeZ = (size_t)placeBlockVector.z;
-            }
+            auto placeBlockVector = findCursorBlock(true);
+            placeX = (size_t)placeBlockVector.x;
+            placeY = (size_t)placeBlockVector.y;
+            placeZ = (size_t)placeBlockVector.z;
             
             
             if (isCoordOutBoundaries((int)placeX, (int)placeY, (int)placeZ)) {
@@ -747,6 +923,14 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Call this to destroy the block in the players looking direction.
+         * If forcedPlace is a valid position, it will destroy the block in that position instead.
+         * This function call also deals deleting light sources
+         * 
+         * @param renderInfo 
+         * @param forcedPlace 
+         */
         void leftClickDestroy(renderer::renderer_t *renderInfo, glm::vec3 forcedPlace = {-10, -10, -10}) {
             swingCycle = 0;
             screen.children[handIndex].translation = oldHandPos;
@@ -777,6 +961,12 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Call this to change the hotbar block into the block that the player is looking at
+         * 
+         * @param renderInfo 
+         * @param forcedPlace 
+         */
         void middleClickPick() {
             auto placeBlockVector = findCursorBlock(false);
             auto placeX = placeBlockVector.x, placeY = placeBlockVector.y, placeZ = placeBlockVector.z;
@@ -810,6 +1000,11 @@ namespace scene {
             scrollHotbar(-1);
         }
 
+        /**
+         * @brief Places the block into the world using it's x, y, z values
+         * 
+         * @param block 
+         */
         void placeBlock(node_t block) {
             size_t blockX = (size_t)block.x, blockY = (size_t)block.y, blockZ = (size_t)block.z;
             scene::destroy(&terrain.at(blockX).at(blockY).at(blockZ), false);
@@ -819,7 +1014,13 @@ namespace scene {
             return;
         }
 
-
+        /**
+         * @brief Finds a suitable respawn position of player and teleports them to there
+         * If a block is in the way, the block will be deleted. If there aren't any blocks
+         * beneath the respawn location, flying mode will be toggled on
+         * 
+         * @param block 
+         */
         void findRespawnPosition(renderer::renderer_t *renderInfo) {
             playerCamera.pos = {round(terrain.size() / 2), 6.0f, round(terrain.at(0).at(0).size() / 2)};
             while (checkInsideBlock()) {
@@ -832,21 +1033,27 @@ namespace scene {
                 flyingMode = false;
                 toggleMode();
             }
-
         }
 
         /**
-         * Function that controls how the player moves and obstructions by
-         * blocks
+         * @brief Function that controls the hitboxes and how the player camera moves with WASD, Shift etc.
+         * 
+         * @param window 
+         * @param dt 
+         * @param renderInfo 
          */
         void updatePlayerPositions(GLFWwindow *window, float dt, renderer::renderer_t *renderInfo) {
             swingHand(dt);
 
-            player::update_cam_angles(playerCamera, window, dt);
+            player::updateCameraAngle(playerCamera, window, dt);
 
             auto originalPosition = playerCamera.pos;
 
-            if (flyingMode) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && flyingMode) {
+                playerCamera.yVelocity = -1.0f;
+            } else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && flyingMode) {
+                playerCamera.yVelocity = 1.0f;
+            } else if (flyingMode) {
                 playerCamera.yVelocity = 0.0f;
             }
 
@@ -914,7 +1121,7 @@ namespace scene {
                     playerCamera.pos.x -= right.x * step;
                 }
             }
-            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && playerCamera.yVelocity == 0) {
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && (playerCamera.yVelocity == 0 || flyingMode)) {
                 if (!flyingMode) {
                     playerCamera.yVelocity = JUMP_POWER;
                 } else {
@@ -993,7 +1200,7 @@ namespace scene {
                 playerCamera.pos.y = groundLevel + eyeLevel;
                 playerCamera.yVelocity = 0;
             }
-            if (playerCamera.yVelocity >= 0) {
+            if (playerCamera.yVelocity > 0) {
                 // Below keeps player under the ceiling
                 if (playerCamera.pos.y + 1.0f >= aboveLevel) {
                     if (flyingMode) {
@@ -1005,6 +1212,15 @@ namespace scene {
         
         }
 
+        /**
+         * @brief Checks if the given x, y, z co-ordinates exists in the terrain/world
+         * 
+         * @param x 
+         * @param y 
+         * @param z 
+         * @return true if out of bounds
+         * @return false if inside bounds
+         */
         bool isCoordOutBoundaries(int x, int y, int z) {
             try {
                 terrain.at(x).at(y).at(z).air = terrain.at(x).at(y).at(z).air;
@@ -1014,8 +1230,13 @@ namespace scene {
             return false;
         }
 
+        /**
+         * @brief Checks if the player is inside a block
+         * 
+         * @return true if the player is clipping into a block
+         * @return false if the player is not clipping into a block
+         */
         bool checkInsideBlock() {
-            
             
             float playerPosY = playerCamera.pos.y - eyeLevel;
             float playerPosX = playerCamera.pos.x;
@@ -1039,7 +1260,13 @@ namespace scene {
             return false;
             
         }
-         
+        
+        /**
+         * @brief Find the highest or lowest level the player can go with their x and z co-ordinate
+         * 
+         * @param direction (Positive to find the closest block above. Negative to find the closest block below)
+         * @return int 
+         */
         int findClosestBlockAboveBelow(int direction) {
             
             float playerPosY = playerCamera.pos.y - eyeLevel;
@@ -1076,6 +1303,11 @@ namespace scene {
             return (int)direction * (int)WORLD_HEIGHT * (int)WORLD_HEIGHT;
         }
 
+        /**
+         * @brief Draws the terrain, HUD, lighting effects etc.
+         * 
+         * @param renderInfo 
+         */
         void drawWorld(renderer::renderer_t renderInfo) {
 
             glClearColor(0.f, 0.f, 0.2f, 1.f);
@@ -1090,7 +1322,7 @@ namespace scene {
             drawTerrain(glm::mat4(1.0f), renderInfo);
             
             if (!shiftMode) {
-                // Drawing the highlighted block
+                // Drawing the highlighted block if shift mode is not enabled
                 highlightedBlock.translation = findCursorBlock(false);
                 if (!isCoordOutBoundaries(highlightedBlock.translation.x, highlightedBlock.translation.y, highlightedBlock.translation.z)) {
                     drawElement(&highlightedBlock, glm::mat4(1.0f), renderInfo, defaultSpecular);
@@ -1105,6 +1337,14 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Draws whatever is currently inside listOfBlocksToRender
+         * Also calculates the degree between the block and the players looking vector to determine
+         * if the block is within the players view point
+         * 
+         * @param parent_mvp 
+         * @param renderInfo 
+         */
         void drawTerrain(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
 
             for (size_t i = 0; i < listOfBlocksToRender.size(); i++) {
@@ -1122,6 +1362,12 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Call this to update the listOfBlocks to render. Only works if the last rendered position is far away enough from
+         * the player's current position. forceRender = true to ignore this
+         * 
+         * @param forceRender 
+         */
         void updateBlocksToRender(bool forceRender = false) {
 
             // Don't bother to render if the last rendered position is less than (renderDistance / 10) blocks away
@@ -1184,15 +1430,23 @@ namespace scene {
             }
 
             lastRenderedPos = getCurrCamera()->pos;
-
         }
 
+        /**
+         * @brief Stores the hidden faces inside the given std::vector
+         * 
+         * @param x 
+         * @param y 
+         * @param z 
+         * @param faces 
+         * @param glassIncluded 
+         */
         void getHiddenFaces(int x, int y, int z, std::vector<bool> &faces, bool glassIncluded) {
             if (!isCoordOutBoundaries(x, y - 1, z) && !(terrain.at(x).at(y - 1).at(z).air || glassIncluded * terrain.at(x).at(y - 1).at(z).transparent)) {
                 faces[0] = false; // 0 bottom
             }
             if (!isCoordOutBoundaries(x, y + 1, z) && !(terrain.at(x).at(y + 1).at(z).air || glassIncluded * terrain.at(x).at(y + 1).at(z).transparent)) {
-                faces[1] = false; // 0 Is top
+                faces[1] = false; // 1 Is top
             }
             if (!isCoordOutBoundaries(x, y, z + 1) && !(terrain.at(x).at(y).at(z + 1).air || glassIncluded * terrain.at(x).at(y).at(z + 1).transparent)) {
                 faces[2] = false;
@@ -1208,6 +1462,12 @@ namespace scene {
             }
         }
 
+        /**
+         * @brief Call this to draw the HUD and other elements which rotate in respect to the player's view point
+         * 
+         * @param parent_mvp 
+         * @param renderInfo 
+         */
         void drawScreen(const glm::mat4 &parent_mvp, renderer::renderer_t renderInfo) {
 
             screen.translation = playerCamera.pos;
@@ -1215,6 +1475,46 @@ namespace scene {
             screen.rotation.y = -playerCamera.yaw;
 
             drawElement(&screen, parent_mvp, renderInfo, defaultSpecular);
+        }
+
+        /**
+         * @brief Prints out a list of code lines to be used for copying and pasting into preset worlds
+         * 
+         */
+        void convertCurrWorldIntoData() {
+            for (size_t x = 0; x < terrain.size(); x++) {
+                for (size_t y = 0; y < terrain.at(0).size(); y++) {
+                    for (size_t z = 0; z < terrain.at(0).at(0).size(); z++) {
+                        if (!terrain.at(x).at(y).at(z).air) {
+                            std::string code = "listOfBlocks.emplace_back(scene::miniBlockData(\"" + terrain.at(x).at(y).at(z).name + "\", glm::vec3(";
+                            std::cout << code.c_str() << x - (float)terrain.size() / 2.0f << ", " << y << ", " << z - (float)terrain.at(0).at(0).size() / 2.0f << "), true));\n";
+                        }
+                    }  
+                }
+            }
+        }
+
+        /**
+         * @brief Destroys all meshes and maps used for this world
+         * 
+         */
+        void destroyEverthing() {
+            for (size_t x = 0; x < terrain.size(); x++) {
+                for (size_t y = 0; y < terrain.at(0).size(); y++) {
+                    for (size_t z = 0; z < terrain.at(0).at(0).size(); z++) {
+                        destroy(&terrain.at(x).at(y).at(z), true);
+                    }  
+                }
+            }
+            destroy(&bed, true);
+            destroy(&centreOfWorldNode, true);
+            destroy(&screen, true);
+            destroy(&highlightedBlock, true);
+
+            for (auto i : moonPhases) {
+                texture_2d::destroy(i);
+            }
+            texture_2d::destroy(defaultSpecular);
         }
     };
 

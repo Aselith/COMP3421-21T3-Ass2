@@ -36,23 +36,27 @@ struct pointerInformation {
 
 int main() {
 
-    // Printing welcome
-    int worldType = 0, renderDistance = 0, worldWidth = 0;
+    // Printing welcome message
+    int worldType = 0, renderDistance = 0, worldWidth = 0, frameLimiter = 1;
     std::cout << "\n\u001B[34mWelcome to a clone of Minecraft, created by z5309206 for COMP3421 ASS2 21T3 UNSW!\n\n\u001B[0m";
-    std::cout << "Presets:\n0 -> Basic Super Flat World\n1 -> Wooly World\n2 -> Iron World\n3 -> Classic Sky Block\n";
+    std::cout << "Presets:\n0 -> Basic Super Flat World\n1 -> Wooly World\n2 -> Iron World\n3 -> Classic Sky Block\n4 -> Parkour Course\n";
     std::cout << "Enter your desired preset world [If not recognised, Basic Super Flat World is used]: ";
     std::cin >> worldType;
     std::cout << "\n";
-    std::cout << "Enter your the world's width [Minimum 50]: ";
+    std::cout << "Enter your world's width [Minimum 50 | Maximum 500]: ";
     std::cin >> worldWidth;
     if (worldWidth < 50) {
         worldWidth = 50;
+    } else if (worldWidth > 500) {
+        worldWidth = 500;
     }
     std::cout << "Enter your desired render distance [Minimum 15 | Recommended 30]: ";
     std::cin >> renderDistance;
     if (renderDistance < 15) {
         renderDistance = 15;
     }
+    std::cout << "Enable frame limiter? [0 for \"No\" | Anything else for \"Yes\"]: ";
+    std::cin >> frameLimiter;
 
     GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "COMP3421 21T3 Assignment 2 [Minecraft: Clone Simulator]");
     chicken3421::image_t faviconImage = chicken3421::load_image("./res/textures/favicon.png", false);
@@ -190,7 +194,160 @@ int main() {
                 }
             }
             break;
-            
+        case 4:
+            std::cout << "Parkour Course selected\n";
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-13, 11, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-13, 12, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-13, 12, -5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-13, 12, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-13, 15, -5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-12, 0, 10), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-12, 0, 11), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-12, 3, 10), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-11, 0, 10), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-11, 0, 11), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-11, 0, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-11, 3, 11), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-10, 0, 11), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-10, 0, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-10, 0, 13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-10, 3, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-9, 0, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-9, 0, 13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-9, 0, 14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-9, 3, 13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-9, 9, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-9, 10, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("copper_block", glm::vec3(-8, 0, 13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-8, 0, 14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-8, 3, 14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-8, 7, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-8, 8, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-7, 5, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-7, 6, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-6, 3, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-6, 4, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(-3, 0, 19), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(-2, 3, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(0, 0, 19), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(0, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(0, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(0, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(0, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(0, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(0, 3, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(0, 3, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(1, 2, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(1, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(1, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(1, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(1, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(1, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(1, 2, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(2, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(2, 1, -13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(2, 2, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(2, 2, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(2, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(2, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(2, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(2, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(2, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(2, 2, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("magma", glm::vec3(3, 0, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(3, 2, -12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(3, 2, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(3, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(3, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(3, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(3, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(3, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(3, 2, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(4, 2, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(4, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(4, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(4, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(4, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(4, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(4, 2, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("yellow", glm::vec3(4, 3, 8), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("yellow", glm::vec3(4, 3, 10), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(4, 6, 8), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(5, 2, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(5, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(5, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(5, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("obsidian", glm::vec3(5, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("iron_block", glm::vec3(5, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(5, 2, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("yellow", glm::vec3(5, 2, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("sea_lantern", glm::vec3(5, 4, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(6, 0, 20), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(6, 0, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(6, 0, 22), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(6, 2, 1), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(6, 2, 2), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(6, 2, 3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(6, 2, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(6, 2, 5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(6, 3, 0), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(6, 3, 6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(7, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(7, 0, 20), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(7, 0, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(7, 0, 22), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(7, 1, 19), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 1, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(7, 1, 23), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 2, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(7, 3, -15), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(7, 3, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(7, 3, -13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 3, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 4, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 5, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 6, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 7, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("marccoin_block", glm::vec3(7, 8, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(8, 0, 20), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(8, 0, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("diamond_ore", glm::vec3(8, 0, 22), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -15), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -9), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -8), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 3, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 6, -9), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 6, -8), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(8, 6, -7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(9, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glowstone", glm::vec3(9, 1, 21), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("yellow", glm::vec3(9, 2, 12), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(9, 3, -15), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(9, 3, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(9, 3, -13), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(10, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(14, 2, 14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 8, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 8, -5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 8, -4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 8, -3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 9, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 9, -5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 9, -4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("glass", glm::vec3(14, 9, -3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("red", glm::vec3(15, 0, -14), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 3, 10), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 4, 7), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 5, 4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 7, -6), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 7, -5), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 7, -4), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(15, 7, -3), true));
+            listOfBlocks.emplace_back(scene::miniBlockData("orange", glm::vec3(17, 6, 1), true));
+            break;
         default:
             std::cout << "Basic Super Flat World selected\n";
             listOfBlocks.emplace_back(scene::miniBlockData("bedrock", glm::vec3(0,0,0), false, true));
@@ -200,7 +357,10 @@ int main() {
             break;
     }
 
-    scene::world gameWorld(listOfBlocks, renderDistance, worldWidth);
+    // Setting up all the render informations
+    renderer::renderer_t renderInfo;
+    renderInfo.initialise(WIN_HEIGHT, WIN_WIDTH);
+    scene::world gameWorld(listOfBlocks, renderDistance, worldWidth, &renderInfo);
 
 
     // SETTING UP ALL CALLBACKS
@@ -241,6 +401,9 @@ int main() {
                 break;
             case GLFW_KEY_C:
                 info->gameWorld->toggleCutscene();
+                break;
+            case GLFW_KEY_O:
+                info->gameWorld->convertCurrWorldIntoData();
                 break;
             case GLFW_KEY_I:
                 info->gameWorld->toggleInstructions(!(info->gameWorld->getInstructionStatus()));
@@ -289,12 +452,10 @@ int main() {
     });
 
 
-    // Setting up all the render informations
-    renderer::renderer_t renderInfo;
-    renderInfo.initialise(WIN_HEIGHT, WIN_WIDTH);
-
-    gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
-    gameWorld.cutsceneCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
+    auto xPos = gameWorld.terrain.size() / 2;
+    auto zPos = gameWorld.terrain[0][0].size() / 2;
+    gameWorld.playerCamera = player::createCamera(glm::vec3(xPos, 5, zPos), glm::vec3(xPos, -10.0f, zPos));
+    gameWorld.cutsceneCamera = player::createCamera(glm::vec3(xPos, 5, zPos), glm::vec3(xPos, -10.0f, zPos));
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -364,16 +525,21 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
+        // Not using frame limiter
         // not entirely correct as a frame limiter, but close enough
         // it would be more correct if we knew how much time this frame took to render
         // and calculated the distance to the next "ideal" time to render and only slept that long
         // the current way just always sleeps for 16.67ms, so in theory we'd drop frames
-        // std::this_thread::sleep_for(std::chrono::duration<float, std::milli>(1000.f / 60));
+        if (frameLimiter != 0) std::this_thread::sleep_for(std::chrono::duration<float, std::milli>(1000.f / 60));
     }
     
-    std::cout << "Terminating program, please standby\n";
+    std::cout << "Terminating program, please standby as everything gets wiped out...\n";
     // deleting the whole window also removes the opengl context, freeing all our memory in one fell swoop.
+    renderInfo.deleteProgram();
+    gameWorld.destroyEverthing();
     chicken3421::delete_opengl_window(window);
+
+    std::cout << "Good bye!\n";
 
     return EXIT_SUCCESS;
 }
