@@ -21,10 +21,10 @@
 
 namespace scene {
 
-    const float GRAVITY = -19.6f;
-    const float JUMP_POWER = 6.0f;
-    const float CAMERA_SPEED = 5.0f;
-    const float PLAYER_RADIUS = 0.25f; // 0.25
+    const float GRAVITY         = -19.6f;
+    const float JUMP_POWER      = 6.0f;
+    const float CAMERA_SPEED    = 5.0f;
+    const float PLAYER_RADIUS   = 0.25f; // 0.25
     const float SCREEN_DISTANCE = 0.25f;
 
     struct node_t {
@@ -74,15 +74,31 @@ namespace scene {
     };
     
     /**
-     * Render the given node and its children recursively
-     * @param node - the node to render
-     * @param parent_mvp - the parent's model view transform
-     * @param mvp_loc - the location of the uniform mvp variable in the render program
+     * @brief Render the given node and its children recursively. Renders selected sides based on
+     * the node's culled faces
+     * 
+     * @param node 
+     * @param model 
+     * @param renderInfo 
+     * @param defaultSpecular 
      */
     void drawBlock(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular);
-    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular);
 
+    /**
+     * @brief Render the given node and its children recursively. Renders all sides regardless
+     * of culled faces
+     * 
+     * @param node 
+     * @param model 
+     * @param renderInfo 
+     * @param defaultSpecular 
+     */
+    void drawElement(const node_t *node, glm::mat4 model, renderer::renderer_t renderInfo, GLuint defaultSpecular);
+    /**
+     * Takes in the parameters and returns blockData with all the information given stored inside
+     */
     blockData combineBlockData(std::string stringName, bool transparent, bool illuminating, bool rotatable = false, glm::vec3 color = {0, 0, 0}, float intensity = 1.0f);
+
 
     node_t createBlock(int x, int y, int z, GLuint texID, GLuint specID, bool transparent, bool invertNormals, bool affectedByLight);
     node_t createBlock(int x, int y, int z, blockData data, bool invertNormals, bool affectedByLight);
@@ -636,7 +652,6 @@ namespace scene {
                 tempIndex++;
                 tempIndex %= hotbar.size();
             }
-
         }
     
         glm::vec3 findCursorBlock(bool giveBlockBefore) {
