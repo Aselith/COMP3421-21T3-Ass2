@@ -349,7 +349,7 @@ int main() {
         }
 
         // Changing and updating where the sun will be
-        sunPosition = glm::vec3(gameWorld.getCurrCamera()->pos.x + (gameWorld.getSunDistance()) * glm::cos(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.y + (gameWorld.getSunDistance() - 10) * glm::sin(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.z);
+        sunPosition = glm::vec3(gameWorld.getCurrCamera()->pos.x + (renderDistance) * glm::cos(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.y + (renderDistance - 10) * glm::sin(glm::radians(degrees)), gameWorld.getCurrCamera()->pos.z);
         renderInfo.sun_light_dir = glm::normalize(gameWorld.getCurrCamera()->pos - sunPosition);
         renderInfo.changeSunlight(degrees);
 

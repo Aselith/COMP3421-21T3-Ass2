@@ -112,7 +112,7 @@ namespace scene {
         float swingCycle = -1.0f, walkCycle = 0.0f;
         GLuint defaultSpecular = texture_2d::init("./res/textures/blocks/default_specular.png");
         std::vector<GLuint> moonPhases;
-        int moonPhase = 0;
+        size_t moonPhase = 0;
 
         std::vector<std::vector<std::vector<node_t>>> terrain;
         std::vector<node_t *> listOfBlocksToRender;
@@ -129,7 +129,7 @@ namespace scene {
 
         int renderDistance = 0;
         int hotbarIndex = 0;
-        int handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0, instructionIndex = 0;
+        size_t handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0, instructionIndex = 0;
         bool flyingMode = false, startSwingHandAnim = false, runningMode = false;
 
         world(std::vector<miniBlockData> listOfBlocks, int inputRenderDistance, int inputWidth) {
@@ -154,55 +154,55 @@ namespace scene {
 
             moonPhase = rand() % (int)moonPhases.size();
 
-            highlightedBlock = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/highlight.png"), -1, false, false, true);
+            highlightedBlock = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/highlight.png"), defaultSpecular, false, false, true);
             highlightedBlock.scale = glm::vec3(1.001, 1.001, 1.001);
             // Setting up Sun
-            node_t sun = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/sun.png"), -1, false, true, false);
+            node_t sun = scene::createBlock(0, 0, 0, texture_2d::init("./res/textures/blocks/sun.png"), defaultSpecular, false, true, false);
             sun.scale = glm::vec3(0.001, 4.0, 4.0);
-            sun.translation.x += renderDistance;
+            sun.translation.x += (float)renderDistance;
             GLuint auraTextureID = texture_2d::init("./res/textures/blocks/sun_aura.png");
-            node_t sunAura = scene::createBlock(0, 0, 0, auraTextureID, -1, false, true, false);
+            node_t sunAura = scene::createBlock(0, 0, 0, auraTextureID, defaultSpecular, false, true, false);
             sunAura.scale = glm::vec3(3.0, 1.2, 1.2);
             sun.children.push_back(sunAura);
             // Setting up Moon
             node_t moonOrbit;
-            node_t moon = scene::createBlock(0, 0, 0, moonPhases[moonPhase], -1, false, false, false);
+            node_t moon = scene::createBlock(0, 0, 0, moonPhases[(size_t)moonPhase], defaultSpecular, false, false, false);
             moon.scale = glm::vec3(0.001, 2.5, 2.5);
-            moonOrbit.translation.x -= renderDistance;
+            moonOrbit.translation.x -= (float)renderDistance;
 
             moonOrbit.children.push_back(moon);
 
             // Generating random stars
-            srand(time(0));
+            srand((glm::uint)time(0));
             GLuint starTexBlueID = texture_2d::init("./res/textures/blocks/star_blue.png");
             GLuint starTexYellowID = texture_2d::init("./res/textures/blocks/star_yellow.png");
             
-            for (int i = 0; i < MAX_STARS; i++) {
+            for (int i = 0; i < (int)MAX_STARS; i++) {
                 
                 float starX, starY, starZ;
                 do {
                     // Randomly generates a Y and Z point, and then finds the X point
                     // via sphere general form
-                    starY = rand() % renderDistance;
-                    starY += (float)((rand() % 9) / 10.0f);
-                    starY *= (rand() % 2 == 0) ? 1 : -1;
-                    starZ = rand() % renderDistance;
-                    starZ += (float)((rand() % 9) / 10.0f);
-                    starZ *= (rand() % 2 == 0) ? 1 : -1;
-                    starX = sqrt(pow(renderDistance, 2) - pow(starY, 2) - pow(starZ, 2));
-                } while (utility::calculateDistance(glm::vec3(0, 0, 0), glm::vec3(-starX + renderDistance, starY, starZ)) <= 2.0f);
+                    starY = (float)(rand() % renderDistance);
+                    starY += (float)fmod(rand(), 9.0f) * 0.1f;
+                    starY *= (rand() % 2 == 0) ? 1.0f : -1.0f;
+                    starZ = (float)(rand() % renderDistance);
+                    starZ += (float)fmod(rand(), 9.0f) * 0.1f;
+                    starZ *= (rand() % 2 == 0) ? 1.0f : -1.0f;
+                    starX = (float)sqrt(pow(renderDistance, 2) - pow(starY, 2) - pow(starZ, 2));
+                } while (utility::calculateDistance(glm::vec3(0, 0, 0), glm::vec3(-starX + (float)renderDistance, starY, starZ)) <= 2.0f);
 
-                node_t star = scene::createBlock(0, 0, 0, (rand() % 2) ? starTexBlueID : starTexYellowID, -1, false, false, false);
-                star.translation = {-starX + renderDistance, starY, starZ};
+                node_t star = scene::createBlock(0, 0, 0, (rand() % 2) ? starTexBlueID : starTexYellowID, defaultSpecular, false, false, false);
+                star.translation = {-starX + (float)renderDistance, starY, starZ};
 
-                star.scale *= ((rand() % 6) + 2) / 40.0f;
-                star.rotation.x += (rand() % 10) / 10.0f;
-                star.rotation.y += (rand() % 10) / 10.0f;
-                star.rotation.z += (rand() % 10) / 10.0f;
+                star.scale *= (float)((rand() % 6) + 2) / 40.0f;
+                star.rotation.x += (float)(rand() % 10) / 10.0f;
+                star.rotation.y += (float)(rand() % 10) / 10.0f;
+                star.rotation.z += (float)(rand() % 10) / 10.0f;
 
                 if (rand() % 10 == 0) {
                     // 1 in 10 chance that the star has an aura around it
-                    star.children.push_back(scene::createBlock(0, 0, 0, auraTextureID, -1, false, false, false));
+                    star.children.push_back(scene::createBlock(0, 0, 0, auraTextureID, defaultSpecular, false, false, false));
                     star.children.back().scale = glm::vec3(2.5f, 2.5f, 2.5f);
                 }
 
@@ -210,7 +210,7 @@ namespace scene {
             }
 
             node_t centreOfWorld;
-            node_t skySphere = createSkySphere(0, getSunDistance() + 1, 256);
+            node_t skySphere = createSkySphere(0, (float)renderDistance + 1.0f, 256);
             // skySphere.texture = texture_2d::init("./res/textures/sky.png");
             skySphere.rotation = glm::vec3(0, 0, 90);
             skySphere.diffuse = glm::vec4((float)173/255, (float)216/255, (float)230/255, 1.0f);
@@ -254,18 +254,19 @@ namespace scene {
             hotbar.push_back(combineBlockData("crying_obsidian", false, true, false, glm::vec3(131.0f, 8.0f, 228.0f) * (1.0f / 255.0f), 2.0f));
             hotbar.push_back(combineBlockData("obsidian", false, false));
             hotbar.push_back(combineBlockData("tnt", false, false));
-            hotbar.push_back(combineBlockData("coal_ore", false, false));
-            hotbar.push_back(combineBlockData("iron_ore", false, false));
             hotbar.push_back(combineBlockData("raw_iron", false, false));
             hotbar.push_back(combineBlockData("iron_block", false, false));
-            hotbar.push_back(combineBlockData("copper_ore", false, false));
             hotbar.push_back(combineBlockData("raw_copper", false, false));
             hotbar.push_back(combineBlockData("copper_block", false, false));
-            hotbar.push_back(combineBlockData("gold_ore", false, false));
             hotbar.push_back(combineBlockData("raw_gold", false, false));
             hotbar.push_back(combineBlockData("gold_block", false, false));
+            hotbar.push_back(combineBlockData("coal_ore", false, false));
+            hotbar.push_back(combineBlockData("iron_ore", false, false));
+            hotbar.push_back(combineBlockData("copper_ore", false, false));
+            hotbar.push_back(combineBlockData("gold_ore", false, false));
             hotbar.push_back(combineBlockData("lapis_ore", false, false));
             hotbar.push_back(combineBlockData("redstone_ore", false, true, false, glm::vec3(253.0f, 94.0f, 94.0f) * (1.0f / 255.0f), 0.5f));
+            hotbar.push_back(combineBlockData("emerald_ore", false, false));
             hotbar.push_back(combineBlockData("diamond_ore", false, false));
             hotbar.push_back(combineBlockData("marccoin_block", false, false, true));
             hotbar.push_back(combineBlockData("bedrock", false, false));
@@ -288,17 +289,17 @@ namespace scene {
             hotbarSecondary.push_back(combineBlockData("black", false, false));
 
             // Hand
-            node_t blockHand = scene::createBlock(0, 0, 0, hotbar[0].texture, -1, false, false, true);
-            blockHand.translation.z = -1 * SCREEN_DISTANCE;
-            blockHand.translation.y -= 0.15;
-            blockHand.translation.x += 0.25;
+            node_t blockHand = scene::createBlock(0, 0, 0, hotbar[0].texture, hotbar[0].specularMap, false, false, true);
+            blockHand.translation.z = -1.0f * SCREEN_DISTANCE;
+            blockHand.translation.y -= 0.15f;
+            blockHand.translation.x += 0.25f;
             blockHand.scale = glm::vec3(0.15, 0.15, 0.15);
 
             screen.children.push_back(blockHand);
             handIndex = screen.children.size() - 1;
 
             node_t flyingIconNode = scene::createFlatSquare(flyingIcon, false);
-            flyingIconNode.translation.z = -2.8 * SCREEN_DISTANCE;
+            flyingIconNode.translation.z = -2.8f * SCREEN_DISTANCE;
             flyingIconNode.translation.y += 0.096f;
             flyingIconNode.translation.x -= 0.17f;
             flyingIconNode.scale = glm::vec3(0.03, 0.03, 1);
@@ -307,16 +308,16 @@ namespace scene {
             flyingIconIndex = screen.children.size() - 1;
 
             node_t hotbarTexture = scene::createFlatSquare(texture_2d::init("./res/textures/hotbar.png"), false);
-            hotbarTexture.translation.z = -2.7 * SCREEN_DISTANCE;
+            hotbarTexture.translation.z = -2.7f * SCREEN_DISTANCE;
             hotbarTexture.translation.y -= 0.015f;
-            hotbarTexture.scale = glm::vec3(0.25, 0.25, 1);
+            hotbarTexture.scale = glm::vec3(0.25f, 0.25f, 1.0f);
             screen.children.push_back(hotbarTexture);
             hotbarHUDIndex = screen.children.size() - 1;
 
             // Filling up the hotbar and positioning it correctly onto the screen
             float xPos = -0.285f;
             for (int i = 0; i < 9; i++) {
-                node_t hudHotbarBlock = scene::createBlock(0, 0, 0, hotbar[1].texture, -1, false, false, false);
+                node_t hudHotbarBlock = scene::createBlock(0, 0, 0, hotbar[1].texture, defaultSpecular, false, false, false);
                 hudHotbarBlock.translation.z += 0.55f;
                 hudHotbarBlock.translation.y += 0.3f;
                 hudHotbarBlock.translation.x = xPos;
@@ -324,7 +325,7 @@ namespace scene {
                 hudHotbarBlock.rotation = glm::vec3(45, 35, 30);
                 hudHotbarBlock.scale = glm::vec3(0.035, 0.035, 0.00001);
                 screen.children[(size_t)hotbarHUDIndex].children.push_back(hudHotbarBlock);
-                hotbarTextureIndex.push_back(screen.children[(size_t)hotbarHUDIndex].children.size() - 1);
+                hotbarTextureIndex.push_back((int)screen.children[(size_t)hotbarHUDIndex].children.size() - 1);
             }
 
             node_t instructions = scene::createFlatSquare(texture_2d::init("./res/textures/instructions.png"), false);
@@ -363,18 +364,18 @@ namespace scene {
                 auto generatingBlock = findDataBlockName(listOfBlocks[i].blockName);
                 if (listOfBlocks[i].entireLayer) {
                     // Fills up the entire y level
-                    for (int x = 0; x < terrain.size(); x++) {
-                        for (int z = 0; z < terrain.at(0).at(0).size(); z++) {
-                            placeBlock(scene::createBlock(x, listOfBlocks[i].position.y, z, generatingBlock, false, !generatingBlock.illuminating));
+                    for (int x = 0; x < (int)terrain.size(); x++) {
+                        for (int z = 0; z < (int)terrain.at(0).at(0).size(); z++) {
+                            placeBlock(scene::createBlock(x, (int)listOfBlocks[i].position.y, z, generatingBlock, false, !generatingBlock.illuminating));
                         }
                     }
                 } else {
                     if (listOfBlocks[i].startAtMiddle) {
-                        listOfBlocks[i].position += glm::vec3(terrain.size() / 2.0f, 0.0f, terrain.at(0).at(0).size() / 2.0f);
+                        listOfBlocks[i].position += glm::vec3((float)terrain.size() / 2.0f, 0.0f, (float)terrain.at(0).at(0).size() / 2.0f);
                     }
-                    placeBlock(scene::createBlock(listOfBlocks[i].position.x, listOfBlocks[i].position.y, listOfBlocks[i].position.z, generatingBlock, false, !generatingBlock.illuminating));
+                    placeBlock(scene::createBlock((int)listOfBlocks[i].position.x, (int)listOfBlocks[i].position.y, (int)listOfBlocks[i].position.z, generatingBlock, false, !generatingBlock.illuminating));
                 }
-                terrain.at(listOfBlocks[i].position.x).at(listOfBlocks[i].position.y).at(listOfBlocks[i].position.z).transparent = generatingBlock.transparent;
+                terrain.at((size_t)listOfBlocks[i].position.x).at((size_t)listOfBlocks[i].position.y).at((size_t)listOfBlocks[i].position.z).transparent = generatingBlock.transparent;
             }
 
             // Keeping track of where the hand and rotation is
@@ -803,14 +804,6 @@ namespace scene {
             return;
         }
 
-        int getSunDistance() {
-            if (renderDistance < 15) {
-                return 15;
-            } else {
-                return renderDistance;
-            }
-            
-        }
 
         void findRespawnPosition(renderer::renderer_t *renderInfo) {
             playerCamera.pos = {round(terrain.size() / 2), 6.0f, round(terrain.at(0).at(0).size() / 2)};
