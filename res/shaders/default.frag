@@ -14,20 +14,6 @@ void main() {
 }
 */
 
-/*
-#version 330 core
-
-in vec2 vTexCoord;
-
-uniform sampler2D uTex;
-
-out vec4 fFragColor;
-
-void main() {
-    fFragColor = texture(uTex, vTexCoord);
-}
-*/
-
 #version 330 core
 
 #define MAX_LIGHTS 101
@@ -69,11 +55,11 @@ uniform DirLight uSun;
 uniform vec3 uCameraPos;
 uniform SpotLight allLights[MAX_LIGHTS];
 
-vec3 sRGB_to_linear(vec3 col) {
+vec3 rgbToLinear(vec3 col) {
     return pow(col, vec3(2.2));
 }
 
-vec3 linear_to_sRGB(vec3 col) {
+vec3 linearToRgb(vec3 col) {
     return pow(col, vec3(1/2.2));
 }
 
@@ -98,24 +84,29 @@ void main() {
         fFragColor = texture(uTex, vTexCoord);
     } else {
         vec4 color = mix(uMat.color, texture(uTex, vTexCoord), uMat.texFactor);
-        color.rgb = sRGB_to_linear(color.rgb);
+        color.rgb = rgbToLinear(color.rgb);
 
         // Calculating specular
         vec4 mat_specular = mix(uMat.specular, texture(uSpec, vTexCoord), uMat.specularFactor);
-        vec3 mat_specularV3 = sRGB_to_linear(mat_specular.rgb);
+        vec3 mat_specularV3 = rgbToLinear(mat_specular.rgb);
 
-        vec3 ambient = sRGB_to_linear(uSun.color) * pow(uSun.ambient, 2.2);
-        vec3 diffuse = sRGB_to_linear(uSun.color) * sRGB_to_linear(uMat.diffuse) * max(0, dot(-uSun.direction, vNormal));
-        vec3 resultSpotLight = {0, 0, 0};
+        vec3 ambient = rgbToLinear(uSun.color) * pow(uSun.ambient, 2.2);
+        vec3 diffuse = rgbToLinear(uSun.color) * rgbToLinear(uMat.diffuse) * max(0, dot(-uSun.direction, vNormal));
 
+        // Only calculate spot light if there is a diffuse map. This is to avoid lighting on
+        // the sky box
+        vec3 resultSpotLight;
+        resultSpotLight.r = 0;
+        resultSpotLight.g = 0;
+        resultSpotLight.b = 0;
         if (uMat.texFactor == 1.0f) {
             for (int i = 0; i < MAX_LIGHTS; i++) {
                 if (allLights[i].position.x >= 0 && allLights[i].position.y >= 0 && allLights[i].position.z >= 0) {
-                    resultSpotLight += sRGB_to_linear(calcSpotLight(allLights[i], color.rgb, mat_specularV3));
+                    resultSpotLight += rgbToLinear(calcSpotLight(allLights[i], color.rgb, mat_specularV3));
                 }
             }
         }
 
-        fFragColor = vec4(linear_to_sRGB((ambient + diffuse + resultSpotLight) * color.rgb), color.a);
+        fFragColor = vec4(linearToRgb((ambient + diffuse + resultSpotLight) * color.rgb), color.a);
     }
 }

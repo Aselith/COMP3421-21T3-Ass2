@@ -21,7 +21,7 @@
 
 const int WIN_HEIGHT = 1280;
 const int WIN_WIDTH = 720;
-const float W_PRESS_SPACE = 0.15f;
+const float W_PRESS_SPACE = 0.4f;
 
 // 0 -> Basic flat dirt world
 // 1 -> Wooly world
@@ -37,12 +37,17 @@ struct pointerInformation {
 int main() {
 
     // Printing welcome
-    int worldType = 0;
+    int worldType = 0, renderDistance = 0;
     std::cout << "\n\u001B[34mWelcome to a clone of Minecraft, created by z5309206 for COMP3421 ASS2 21T3 UNSW!\n\n\u001B[0m";
-    std::cout << "Presets:\n0 -> Basic super flat world\n1 -> Wooly world\n2 -> Iron World\n3 -> Classic Sky Block\n";
+    std::cout << "Presets:\n0 -> Basic Super Flat World\n1 -> Wooly World\n2 -> Iron World\n3 -> Classic Sky Block\n";
     std::cout << "Enter your desired preset world [If not recognised, Basic super flat world is used]: ";
     std::cin >> worldType;
     std::cout << "\n";
+    std::cout << "Enter your desired render distance [Minimum 15. Recommended 30]: ";
+    std::cin >> renderDistance;
+    if (renderDistance < 15) {
+        renderDistance = 15;
+    }
 
     GLFWwindow *window = chicken3421::make_opengl_window(WIN_HEIGHT, WIN_WIDTH, "COMP3421 21T3 Assignment 2 [Minecraft: Clone Simulator]");
     chicken3421::image_t faviconImage = chicken3421::load_image("./res/textures/favicon.png", false);
@@ -189,8 +194,10 @@ int main() {
             break;
     }
 
-    scene::world gameWorld(listOfBlocks);
+    scene::world gameWorld(listOfBlocks, renderDistance);
 
+
+    // SETTING UP ALL CALLBACKS
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetKeyCallback(window, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
@@ -201,7 +208,7 @@ int main() {
         switch(key) {
             case GLFW_KEY_W:
                 // Double tap to run
-                if (glfwGetTime() - info->lastWPressed <= W_PRESS_SPACE) {
+                if ((float)glfwGetTime() - info->lastWPressed <= W_PRESS_SPACE) {
                     info->gameWorld->runningMode = true;
                 } else {
                     info->lastWPressed = glfwGetTime();
@@ -217,11 +224,13 @@ int main() {
                 info->gameWorld->toggleMode();
                 break;
             case GLFW_KEY_G:
+                std::cout << "Directly beneath: " << info->gameWorld->groundLevel << "\n";
+                std::cout << "Directly above  : " << info->gameWorld->aboveLevel << "\n";
                 std::cout << "X: " << info->gameWorld->playerCamera.pos.x << " ";
                 std::cout << "Y: " << info->gameWorld->playerCamera.pos.y << " ";
                 std::cout << "Z: " << info->gameWorld->playerCamera.pos.z << "\n";
                 std::cout << "Yaw: " << info->gameWorld->playerCamera.yaw << "\n";
-                std::cout << "Pitch: " << info->gameWorld->playerCamera.pitch << "\n";
+                std::cout << "Pitch: " << info->gameWorld->playerCamera.pitch << "\n\n";
                 break;
             case GLFW_KEY_C:
                 info->gameWorld->toggleCutscene();
@@ -243,33 +252,18 @@ int main() {
     });
 
     glfwSetWindowSizeCallback(window, [](GLFWwindow* win, int width, int height) {
-
         glViewport(0, 0, width, height);
     });
 
+    glfwSetScrollCallback(window, [](GLFWwindow *win, double xoffset, double yoffset) {
+        pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
 
-    // Setting up all the render informations
-    renderer::renderer_t renderInfo;
-    renderInfo.initialise(WIN_HEIGHT, WIN_WIDTH);
-    
-
-    gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
-    gameWorld.cutsceneCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    /**
-     * Setting up clicks
-     */
-    pointerInformation info;
-    info.gameWorld = &gameWorld;
-    info.renderInfo = &renderInfo;
-    glfwSetWindowUserPointer(window, &info);
+        if (yoffset > 0) {
+            info->gameWorld->scrollHotbar(1);
+        } else {
+            info->gameWorld->scrollHotbar(-1);
+        }
+    });
 
     glfwSetMouseButtonCallback(window, [](GLFWwindow *win, int button, int action, int mods) {
 
@@ -290,15 +284,28 @@ int main() {
         }
     });
 
-    glfwSetScrollCallback(window, [](GLFWwindow *win, double xoffset, double yoffset) {
-        pointerInformation *info = (pointerInformation *) glfwGetWindowUserPointer(win);
 
-        if (yoffset > 0) {
-            info->gameWorld->scrollHotbar(1);
-        } else {
-            info->gameWorld->scrollHotbar(-1);
-        }
-    });
+    // Setting up all the render informations
+    renderer::renderer_t renderInfo;
+    renderInfo.initialise(WIN_HEIGHT, WIN_WIDTH);
+
+    gameWorld.playerCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
+    gameWorld.cutsceneCamera = player::make_camera(glm::vec3(gameWorld.terrain.size() / 2, 5, gameWorld.terrain[0][0].size() / 2), glm::vec3(4));
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    /**
+     * Setting up clicks
+     */
+    pointerInformation info;
+    info.gameWorld = &gameWorld;
+    info.renderInfo = &renderInfo;
+    glfwSetWindowUserPointer(window, &info);
 
     glm::vec3 sunPosition;
     float degrees = 90;
@@ -329,7 +336,7 @@ int main() {
         if (gameWorld.cutsceneEnabled) {
             degrees += 20.0f * dt;
         } else {
-            degrees += 0.5f * dt;
+            degrees += 0.25f * dt;
         }
         
         if (degrees >= 360) {
@@ -345,7 +352,7 @@ int main() {
         if (gameWorld.getCutsceneStatus()) {
             gameWorld.animateCutscene();
         } else {
-            gameWorld.updatePlayerPositions(window, dt);
+            gameWorld.updatePlayerPositions(window, dt, &renderInfo);
         }
 
         gameWorld.updateSunPosition(degrees, renderInfo.getSkyColor(degrees));
