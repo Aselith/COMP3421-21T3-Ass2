@@ -63,7 +63,7 @@ vec3 linearToRgb(vec3 col) {
     return pow(col, vec3(1/2.2));
 }
 
-vec3 calcSpotLight(SpotLight light, vec3 mat_diffuse, vec3 mat_specular) {
+vec3 calcPointLight(SpotLight light, vec3 mat_diffuse, vec3 mat_specular) {
     vec3 ambient = light.ambient * mat_diffuse * uMat.ambient;
     vec3 light_direction = normalize(vPosition - light.position);
     vec3 diffuse = light.diffuse * mat_diffuse * max(0,dot(-light_direction, vNormal));
@@ -95,18 +95,18 @@ void main() {
 
         // Only calculate spot light if there is a diffuse map. This is to avoid lighting on
         // the sky box
-        vec3 resultSpotLight;
-        resultSpotLight.r = 0;
-        resultSpotLight.g = 0;
-        resultSpotLight.b = 0;
+        vec3 resultPointLightTotal;
+        resultPointLightTotal.r = 0;
+        resultPointLightTotal.g = 0;
+        resultPointLightTotal.b = 0;
         if (uMat.texFactor == 1.0f) {
             for (int i = 0; i < MAX_LIGHTS; i++) {
                 if (allLights[i].position.x >= 0 && allLights[i].position.y >= 0 && allLights[i].position.z >= 0) {
-                    resultSpotLight += rgbToLinear(calcSpotLight(allLights[i], color.rgb, mat_specularV3));
+                    resultPointLightTotal += rgbToLinear(calcPointLight(allLights[i], color.rgb, mat_specularV3));
                 }
             }
         }
 
-        fFragColor = vec4(linearToRgb((ambient + diffuse + resultSpotLight) * color.rgb), color.a);
+        fFragColor = vec4(linearToRgb((ambient + diffuse + resultPointLightTotal) * color.rgb), color.a);
     }
 }
