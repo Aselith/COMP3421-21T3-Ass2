@@ -1,29 +1,29 @@
 # Assignment 2 Justification
 
 Demonstration of (almost) all features implemented in this project can be viewed in these two videos:
-https://www.youtube.com/watch?v=xIFnil_tP2s
-https://www.youtube.com/watch?v=cTxstJ59Y9I
+- https://www.youtube.com/watch?v=xIFnil_tP2s
+- https://www.youtube.com/watch?v=cTxstJ59Y9I
 
 Basic Minecraft Clone by z5309206
 CONTROLS:
 
-Move mouse to move view
-WASD to move
-Double tap W to run
-SPACE to jump
-LEFT CLICK to break the highlighted block
-RIGHT CLICK to place the block in your current hand
-MIDDLE CLICK to quickly put the put that you've highlighted into your hand
-MOUSE WHEEL to scroll through hotbar
-LEFT SHIFT to sneak (Same functionality as in Minecraft, where you can not fall off blocks in sneak state. Sneaking will also stop highlighting blocks so that you can see the specular reflections better)
-TAB to maximise/minimise game window
-C to sleep and wake up (Toggles between player and cutscene camera)
-F to toggle flight mode (Toggles between player and flying camera)
-G to print debug information into terminal, such as framerate player position etc.
-O to convert the current world into lines of code so that it can be used as a preset world
-E to change from the two hotbars (general blocks -> wool blocks and vice versa)
-I to see these instructions ingame
-ESC to terminate game
+- Move mouse to move view
+- WASD to move
+- Double tap W to run
+- SPACE to jump
+- LEFT CLICK to break the highlighted block
+- RIGHT CLICK to place the block in your current hand
+- MIDDLE CLICK to quickly put the put that you've highlighted into your hand
+- MOUSE WHEEL to scroll through hotbar
+- LEFT SHIFT to sneak (Same functionality as in Minecraft, where you can not fall off blocks in sneak state. Sneaking will also stop highlighting - blocks so that you can see the specular reflections better)
+- TAB to maximise/minimise game window
+- C to sleep and wake up (Toggles between player and cutscene camera)
+- F to toggle flight mode (Toggles between player and flying camera)
+- G to print debug information into terminal, such as framerate player position etc.
+- O to convert the current world into lines of code so that it can be used as a preset world
+- E to change from the two hotbars (general blocks -> wool blocks and vice versa)
+- I to see these instructions ingame
+- ESC to terminate game
 
 When the player's pitch angle is between a certain threshold, blocks such as the oak log and barrel will rotate based on where the player is standing when they first palced the block.
 
