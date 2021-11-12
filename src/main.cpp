@@ -484,7 +484,7 @@ int main() {
 
     glfwShowWindow(window);
     glfwFocusWindow(window);
-
+    // RENDER LOOP
     while (!glfwWindowShouldClose(window)) {
 
         float dt = utility::time_delta();

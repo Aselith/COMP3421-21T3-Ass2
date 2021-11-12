@@ -1,5 +1,5 @@
-#ifndef COMP3421_RENDERER_HPP
-#define COMP3421_RENDERER_HPP
+#ifndef COMP3421_ASS2_RENDERER_HPP
+#define COMP3421_ASS2_RENDERER_HPP
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -64,7 +64,7 @@ namespace renderer {
 		GLint mat_ambient_loc;
 		GLint phong_exponent_loc;
 		GLint camera_loc;
-		std::vector<lightSource> all_lights_sources;
+		std::vector<lightSource> allLightSources;
 		int totalPointLights = 0;
 
 		/**
@@ -113,7 +113,7 @@ namespace renderer {
 				light.specular_loc = chicken3421::get_uniform_location(program, "allLights[" + std::to_string(i) + "].specular");
 				light.intensity_loc = chicken3421::get_uniform_location(program, "allLights[" + std::to_string(i) + "].intensity");
 				light.position = {-1, -1, -1};
-				all_lights_sources.push_back(light);
+				allLightSources.push_back(light);
 			}
 		}
 
@@ -179,7 +179,7 @@ namespace renderer {
             glUniform3fv(sun_color_loc, 1, glm::value_ptr(sun_light_color));
             glUniform3fv(camera_loc, 1, glm::value_ptr(pos));
             glUniform1f(sun_ambient_loc, sun_light_ambient);
-			for (auto light : all_lights_sources) {
+			for (auto light : allLightSources) {
 				glUniform3fv(light.ambient_loc, 1, glm::value_ptr(light.ambient));
 				glUniform3fv(light.diffuse_loc, 1, glm::value_ptr(light.diffuse));
 				glUniform3fv(light.specular_loc, 1, glm::value_ptr(light.specular));
@@ -201,24 +201,24 @@ namespace renderer {
 		 * @return int 
 		 */
 		int addLightSource(glm::vec3 pos, glm::vec3 color, float intensity) {
-			for (size_t i = 0; i < all_lights_sources.size(); i++) {
-				if (!all_lights_sources[i].occupied) {
+			for (size_t i = 0; i < allLightSources.size(); i++) {
+				if (!allLightSources[i].occupied) {
 					totalPointLights++;
 					std::cout << "\u001b[32mLight added.   " << MAX_LIGHTS - totalPointLights << " lights left.\n\033[0m";
-					all_lights_sources[i].occupied = true;
-					all_lights_sources[i].position = pos;
-					all_lights_sources[i].diffuse = color;
-					all_lights_sources[i].ambient = color;
-					all_lights_sources[i].intensity = intensity;
-					all_lights_sources[i].specular = color * 1.5f;
-					if (all_lights_sources[i].specular.r >= 1.0f) {
-						all_lights_sources[i].specular.r = 1.0f;
+					allLightSources[i].occupied = true;
+					allLightSources[i].position = pos;
+					allLightSources[i].diffuse = color;
+					allLightSources[i].ambient = color;
+					allLightSources[i].intensity = intensity;
+					allLightSources[i].specular = color * 1.5f;
+					if (allLightSources[i].specular.r >= 1.0f) {
+						allLightSources[i].specular.r = 1.0f;
 					}
-					if (all_lights_sources[i].specular.g >= 1.0f) {
-						all_lights_sources[i].specular.g = 1.0f;
+					if (allLightSources[i].specular.g >= 1.0f) {
+						allLightSources[i].specular.g = 1.0f;
 					}
-					if (all_lights_sources[i].specular.b >= 1.0f) {
-						all_lights_sources[i].specular.b = 1.0f;
+					if (allLightSources[i].specular.b >= 1.0f) {
+						allLightSources[i].specular.b = 1.0f;
 					}
 					return (int)i;
 				}
@@ -235,23 +235,19 @@ namespace renderer {
 			if (lightID < 0) return;
 			totalPointLights--;
 			std::cout << "\u001b[31mLight removed. " << MAX_LIGHTS - totalPointLights << " lights left.\033[0m\n";
-			all_lights_sources[lightID].occupied = false;
-			all_lights_sources[lightID].position = {-1, -1, 1};
+			allLightSources[(size_t)lightID].occupied = false;
+			allLightSources[(size_t)lightID].position = {-1, -1, 1};
 			return;
 		}
 
+		/**
+		 * @brief Deletes the program that was originally initialised
+		 * 
+		 */
 		void deleteProgram() {
 			chicken3421::delete_program(program);
 		}
 	};
-
-	/*
-	renderer_t init(const glm::mat4& projection);
-
-	void draw(const scene::node_t* node, const renderer_t& renderer, glm::mat4 model);
-
-	void render(const renderer_t& renderer, const scene::scene_t& scene);
-	*/
 }
 
-#endif // COMP3421_RENDERER_HPP
+#endif // COMP3421_ASS2_RENDERER_HPP

@@ -83,15 +83,15 @@ void main() {
     if (vNormal.x == 0 && vNormal.y == 0 && vNormal.z == 0) {
         fFragColor = texture(uTex, vTexCoord);
     } else {
+        // Calculating diffuse
         vec4 color = mix(uMat.color, texture(uTex, vTexCoord), uMat.texFactor);
         color.rgb = rgbToLinear(color.rgb);
+        vec3 ambient = rgbToLinear(uSun.color) * pow(uSun.ambient, 2.2);
+        vec3 diffuse = rgbToLinear(uSun.color) * rgbToLinear(uMat.diffuse) * max(0, dot(-uSun.direction, vNormal));
 
         // Calculating specular
         vec4 mat_specular = mix(uMat.specular, texture(uSpec, vTexCoord), uMat.specularFactor);
         vec3 mat_specularV3 = rgbToLinear(mat_specular.rgb);
-
-        vec3 ambient = rgbToLinear(uSun.color) * pow(uSun.ambient, 2.2);
-        vec3 diffuse = rgbToLinear(uSun.color) * rgbToLinear(uMat.diffuse) * max(0, dot(-uSun.direction, vNormal));
 
         // Only calculate spot light if there is a diffuse map. This is to avoid lighting on
         // the sky box

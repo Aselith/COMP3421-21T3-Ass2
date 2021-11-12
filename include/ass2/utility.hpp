@@ -56,7 +56,7 @@ namespace utility {
      * @param t 
      * @return glm::vec3 
      */
-    glm::vec3 cubicBezier(const std::vector<glm::vec3> &control_points, float t);
+    glm::vec3 cubicBezier(const std::vector<glm::vec3> &controlPoints, float t);
 
     /**
      * @brief Get the direction in which the player is facing.

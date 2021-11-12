@@ -78,11 +78,11 @@ namespace utility {
 		return total;
 	}
 
-	glm::vec3 cubicBezier(const std::vector<glm::vec3> &control_points, float t) {
-		glm::vec3 pos = (1 - t) * (1 - t) * (1 - t) * control_points[0]
-						+ 3 * t * (1 - t) * (1 - t) * control_points[1]
-						+ 3 * t * t * (1 - t) * control_points[2]
-						+ t * t * t * control_points[3];
+	glm::vec3 cubicBezier(const std::vector<glm::vec3> &controlPoints, float t) {
+		glm::vec3 pos = (1 - t) * (1 - t) * (1 - t) * controlPoints[0]
+						+ 3 * t * (1 - t) * (1 - t) * controlPoints[1]
+						+ 3 * t * t * (1 - t) * controlPoints[2]
+						+ t * t * t * controlPoints[3];
 		return pos;
 	}
 

@@ -22,7 +22,7 @@ namespace player {
         glm::vec2 mouse_pos = {mx, my};
 
         glm::vec2 offset = MOUSE_SENSITIVITY * dt * (mouse_pos - mouse_prev);
-        offset.y *= -1; // reversed since y-coordinates range from bottom to top
+        offset.y *= -1;
         mouse_prev = mouse_pos;
 
         cam.yaw += offset.x;

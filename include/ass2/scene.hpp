@@ -24,7 +24,7 @@ namespace scene {
     const float GRAVITY         = -19.6f;
     const float JUMP_POWER      = 6.0f;
     const float CAMERA_SPEED    = 5.0f;
-    const float PLAYER_RADIUS   = 0.26f; // 0.25
+    const float PLAYER_RADIUS   = 0.25f; // 0.25
     const float SCREEN_DISTANCE = 0.25f;
 
     struct node_t {
@@ -200,7 +200,7 @@ namespace scene {
         std::vector<node_t *> listOfBlocksToRender;
 
         node_t screen;
-        node_t centreOfWorldNode;
+        node_t centreOfWorld;
         node_t highlightedBlock;
         node_t bed;
         
@@ -211,7 +211,7 @@ namespace scene {
 
         int renderDistance = 0;
         int hotbarIndex = 0;
-        size_t handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, skyIndex = 0, moonIndex = 0, instructionIndex = 0;
+        size_t handIndex = 0, hotbarHUDIndex = 0, flyingIconIndex = 0, skySphereIndex = 0, moonIndex = 0, instructionIndex = 0;
         bool flyingMode = false, startSwingHandAnim = false, runningMode = false;
 
         /**
@@ -229,8 +229,12 @@ namespace scene {
             
             std::cout << "Generating world of size " << worldWidth << "x" << worldWidth << " with render distance " << renderDistance << ". Please standby...\n";
             GLuint flyingIcon = texture_2d::init("./res/textures/flying_mode.png");
+            
+            // SETTING UP BED SCENE GRAPH
             bed = createBedPlayer(texture_2d::init("./res/textures/blocks/bed.png"), texture_2d::init("./res/textures/player.png"));
 
+
+            // SETTING UP CENTRE OF WORLD SCENE GRAPH
             // Setting up moon phases
             moonPhases.push_back(texture_2d::init("./res/textures/blocks/moon/moon_0.png"));
             moonPhases.push_back(texture_2d::init("./res/textures/blocks/moon/moon_1.png"));
@@ -298,7 +302,6 @@ namespace scene {
                 moonOrbit.children.push_back(star);
             }
 
-            node_t centreOfWorld;
             node_t skySphere = createSkySphere(0, (float)renderDistance + 1.0f, 256);
             // skySphere.texture = texture_2d::init("./res/textures/sky.png");
             skySphere.rotation = glm::vec3(0, 0, 90);
@@ -309,10 +312,9 @@ namespace scene {
             centreOfWorld.children.push_back(sun);
             centreOfWorld.children.push_back(moonOrbit);
             moonIndex = centreOfWorld.children.size() - (size_t)1;
-            centreOfWorldNode.children.push_back(centreOfWorld);
-            skyIndex = centreOfWorldNode.children.size() - (size_t)1;
+            // skyIndex = centreOfWorldNode.children.size() - (size_t)1;
 
-            // Setting up HUD
+            // SETTING UP SCREEN SCENE GRAPH
 
             // Crosshair
             node_t crosshair = scene::createFlatSquare(texture_2d::init("./res/textures/crosshair.png"), false);
@@ -320,7 +322,7 @@ namespace scene {
             crosshair.scale = glm::vec3(0.02, 0.02, 0.02);
             screen.children.push_back(crosshair);
 
-            // ADD BLOCKS HERE
+            // ADD BLOCKS HERE //
             // First hotbar
             hotbar.push_back(combineBlockData("dirt", false, false));
             hotbar.push_back(combineBlockData("coarse_dirt", false, false));
@@ -425,7 +427,7 @@ namespace scene {
             screen.children.push_back(instructions);
             instructionIndex = screen.children.size() - 1;
             
-            // SCENE GRAPHS
+            // ALL SCENE GRAPHS
             // Screen node -> Hand object
             //             -> Flying icon
             //             -> Instructions
@@ -442,6 +444,8 @@ namespace scene {
             //                              -> Left leg
             //                              -> Right leg
 
+            // Terrain -> All blocks within the world
+
             // Update the textures of the hotbar
             scrollHotbar(1);
             scrollHotbar(-1);
@@ -452,7 +456,7 @@ namespace scene {
                 
                 auto generatingBlock = findDataBlockName(listOfBlocks[i].blockName);
                 if (listOfBlocks[i].entireLayer) {
-                    // Fills up the entire y level
+                    // Fills up the entire y level if specified
                     for (int x = 0; x < (int)terrain.size(); x++) {
                         for (int z = 0; z < (int)terrain.at(0).at(0).size(); z++) {
                             placeBlock(scene::createBlock(x, (int)listOfBlocks[i].position.y, z, generatingBlock, false, !generatingBlock.illuminating));
@@ -463,6 +467,7 @@ namespace scene {
                     }
                 } else {
                     if (listOfBlocks[i].startAtMiddle) {
+                        // Repositioning all the co-oridinates into the centre of the world if specified
                         listOfBlocks[i].position += glm::vec3((float)terrain.size() / 2.0f, 0.0f, (float)terrain.at(0).at(0).size() / 2.0f);
                     }
                     placeBlock(scene::createBlock((int)listOfBlocks[i].position.x, (int)listOfBlocks[i].position.y, (int)listOfBlocks[i].position.z, generatingBlock, false, !generatingBlock.illuminating));
@@ -472,7 +477,6 @@ namespace scene {
                 }
                 terrain.at((size_t)listOfBlocks[i].position.x).at((size_t)listOfBlocks[i].position.y).at((size_t)listOfBlocks[i].position.z).transparent = generatingBlock.transparent;
             }
-
             // Keeping track of where the hand and rotation is
             oldHandPos = screen.children[handIndex].translation;
             oldHandRotation = screen.children[handIndex].rotation;
@@ -540,11 +544,11 @@ namespace scene {
         void updateMoonPhase() {
             moonPhase++;
             moonPhase %= moonPhases.size();
-            centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[0].textureID = moonPhases[moonPhase];
+            centreOfWorld.children[(size_t)moonIndex].children[0].textureID = moonPhases[moonPhase];
         }
 
         /**
-         * @brief Use this to enable the sleeping cutscene
+         * @brief Use this to enable the sleeping cutscene. Can only occur if the player is on the ground and aren't surrounded by blocks
          * 
          */
         void toggleCutscene() {
@@ -657,7 +661,7 @@ namespace scene {
         void tickStars(float dt) {
             // Index 0 is the moon. Skip it
             for (size_t i = 1; i < MAX_STARS; i++) {
-                node_t *starPointer = &centreOfWorldNode.children[(size_t)skyIndex].children[(size_t)moonIndex].children[i];
+                node_t *starPointer = &centreOfWorld.children[(size_t)moonIndex].children[i];
                 bool status = (rand() % 20 == 0);
                 starPointer->air = status;
                 if (starPointer->children.size() > 0) {
@@ -696,10 +700,10 @@ namespace scene {
          */
         void updateSunPosition(float degree, glm::vec3 skyColor, float dt) {
             tickStars(dt);
-            centreOfWorldNode.children[skyIndex].translation = playerCamera.pos;
-            centreOfWorldNode.children[skyIndex].translation.y -= eyeLevel + 6.5f;
-            centreOfWorldNode.children[skyIndex].rotation = glm::vec3(0, 0, degree);
-            centreOfWorldNode.children[skyIndex].children[skySphereIndex].diffuse = skyColor;
+            centreOfWorld.translation = playerCamera.pos;
+            centreOfWorld.translation.y -= eyeLevel + 6.5f;
+            centreOfWorld.rotation = glm::vec3(0, 0, degree);
+            centreOfWorld.children[skySphereIndex].diffuse = skyColor;
         }
 
         /**
@@ -807,7 +811,7 @@ namespace scene {
             }
             screen.children[handIndex].textureID = hotbar[hotbarIndex].texture;
             screen.children[handIndex].specularID = hotbar[hotbarIndex].specularMap;
-
+            // Updating the textures in the hotbar
             int tempIndex = hotbarIndex - 4;
             if (tempIndex < 0) {
                 tempIndex = hotbar.size() + tempIndex;
@@ -1044,11 +1048,12 @@ namespace scene {
          */
         void updatePlayerPositions(GLFWwindow *window, float dt, renderer::renderer_t *renderInfo) {
             swingHand(dt);
-
+            // camera angle update is reserved for player.cpp as that does not depend on the terrain
             player::updateCameraAngle(playerCamera, window, dt);
 
             auto originalPosition = playerCamera.pos;
 
+            //
             if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && flyingMode) {
                 playerCamera.yVelocity = -1.0f;
             } else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && flyingMode) {
@@ -1176,7 +1181,7 @@ namespace scene {
                 }
             }
 
-            // World boundaries. Respawns when the y co-ordinate goes too low or too high
+            // World boundaries. Respawns when the y co-ordinate goes too low
             // || playerCamera.pos.y > WORLD_HEIGHT - 1
             if (playerCamera.pos.y - eyeLevel < -1 * (int)WORLD_HEIGHT) {
                 std::cout << "Respawned, you went too low!\n";
@@ -1318,7 +1323,7 @@ namespace scene {
             auto view_proj = renderInfo.projection * getCurrCamera()->get_view();
 		    glUniformMatrix4fv(renderInfo.view_proj_loc, 1, GL_FALSE, glm::value_ptr(view_proj));
 
-            drawElement(&centreOfWorldNode, glm::mat4(1.0f), renderInfo, defaultSpecular);
+            drawElement(&centreOfWorld, glm::mat4(1.0f), renderInfo, defaultSpecular);
             drawTerrain(glm::mat4(1.0f), renderInfo);
             
             if (!shiftMode) {
@@ -1507,7 +1512,7 @@ namespace scene {
                 }
             }
             destroy(&bed, true);
-            destroy(&centreOfWorldNode, true);
+            destroy(&centreOfWorld, true);
             destroy(&screen, true);
             destroy(&highlightedBlock, true);
 
