@@ -19,13 +19,15 @@ LEFT SHIFT to sneak (Same functionality as in Minecraft, where you can not fall 
 TAB to maximise/minimise game window
 C to sleep and wake up (Toggles between player and cutscene camera)
 F to toggle flight mode (Toggles between player and flying camera)
-G to print debug information into terminal
+G to print debug information into terminal, such as framerate player position etc.
 O to convert the current world into lines of code so that it can be used as a preset world
 E to change from the two hotbars (general blocks -> wool blocks and vice versa)
 I to see these instructions ingame
 ESC to terminate game
 
 When the player's pitch angle is between a certain threshold, blocks such as the oak log and barrel will rotate based on where the player is standing when they first palced the block.
+
+I am aiming to obtain marks in all sections of this Assignment
 
 ## Section 1: Creation and Use of 3D Objects
 
@@ -236,7 +238,7 @@ I am referencing Notch Pearson's Minecraft and am using textures created by Jasp
 
 ### Please give instructions for how a viewer/player should interact with this scene to see all the content you have created.
 
-Instructions can be seen when the player firsts boots up the game. How the player interacts with the scene depends on what they create. They may create a race course to race around, a parkour map like the one given in the preset, create pixel art, or rebuild the marccoin. Instructions is also given at the start of this markdown file.
+Instructions can be seen when the player firsts boots up the game. The player needs to input their desired world size, the world preset, and their render distance. How the player interacts with the scene depends on what they create. They may create a race course to race around, a parkour map like the one given in the preset, create pixel art, or rebuild the marccoin. Instructions is also given at the start of this markdown file.
 
 All features (Besides a few preset worlds and a few blocks) are demonstrated in the following demo videos:
 
