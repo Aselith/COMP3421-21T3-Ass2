@@ -444,7 +444,7 @@ namespace scene {
             //                              -> Left leg
             //                              -> Right leg
 
-            // Terrain -> All blocks within the world
+
 
             // Update the textures of the hotbar
             scrollHotbar(1);

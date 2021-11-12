@@ -38,11 +38,7 @@ When the tutor selects a preset Minecraft World, the game will load in desired p
 
 ### 1b: Describe your scene graph and the hierarchy within the scene. Include references to where this is implemented in your code.
 
-There is a commented part between line 432 -> 449 which describes the scene graphs used. This program has 4 main scene graphs.
-
-Terrain, which contains all the Minecraft blocks that are placed into the world and can block the players path.
-Terrain scene graph is constructed within scene.hpp from line 456 -> 481
-Graph: Terrain Node -> All blocks
+There is a commented part between line 432 -> 449 which describes the scene graphs used. This program has 3 main scene graphs.
 
 Screen, which contains all the 2D shapes and 3D shapes that needs to be rendered on the screen at all time.
 Screen scene graph is constructed within scene.hpp from line 319 -> 431
