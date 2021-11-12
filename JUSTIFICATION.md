@@ -246,7 +246,7 @@ Side note: The program may take a long time to start if the player chooses a lar
 
 Thank you for reading through this and I hope you enjoy this recreation of Minecraft (and perhaps feel a sense of nostalgia if you're familiar with Classic Minecraft)
 
-
+I am wondering about one thing with the style. How does games implement HUDs like the one featured in this project? (i.e. the hand block always remaining on screen, the hotbar/tool bar staying there static etc.). I'm absolutely sure the way I've implemented a HUD in this project is not the norm. I'm assuming normal games does not use a scene graph nor actually rotate those objects around based on the players cursor just so that it's always in view of the camera. I'm assuming we need another separate shader for this?
 
 ## Section 5 (optional): Code Style Feedback
 
