@@ -228,7 +228,7 @@ I've also tried to implement the various optimisation techniques found in Minecr
 
 ### What is your vision for the scene you are showing?
 
-I wanted to show classic Minecraft during its early stages of development to evoke a sense of nostalgia. I also wanted my project to be able to fool a few people into thinking this was actually Minecraft back in early development stages (I was not successful with this). The game also comes with 5 preset worlds, which is to suit to whatever scene the player wants (If they fancy creating builds on a blank canvas, they may choose Wooly World or Iron World. If they want to experience nostalgic Minecraft, they may choose Basic Super Flat World or Classic Sky Block. If they want a challenge using classic Minecraft controls, they may choose the Parkour Course preset). The vision of the scene is the desired vision and creativity of the player.
+I wanted to show classic Minecraft during its early stages of development to evoke a sense of nostalgia. I also wanted my project to be able to fool a few people into thinking this was actually Minecraft back in early development stages (I was not successful with this). The game also comes with 5 preset worlds, which is to suit to whatever scene the player wants (If they fancy creating builds on a blank canvas, they may choose Wooly World or Iron World. If they want to experience nostalgic Minecraft, they may choose Basic Super Flat World or Classic Sky Block. If they want a challenge using classic Minecraft controls, they may choose the Parkour Course preset). Just like with the original Minecraft, the vision of the scene is the desired vision and creativity of the player.
 
 ### Are you referencing anything in this scene? Is this a quote or homage to any other art? Please describe it.
 
@@ -243,7 +243,7 @@ All features (Besides a few preset worlds and a few blocks) are demonstrated in 
 https://www.youtube.com/watch?v=xIFnil_tP2s
 https://www.youtube.com/watch?v=cTxstJ59Y9I
 
-Side note: The program may take a long time to start if the player chooses a large world size and a large render distance.
+Side note: The program may take a long time to start if the player chooses a large world size and/or a large render distance.
 
 
 Thank you for reading through this and I hope you enjoy this recreation of Minecraft (and perhaps feel a sense of nostalgia if you're familiar with Classic Minecraft)
